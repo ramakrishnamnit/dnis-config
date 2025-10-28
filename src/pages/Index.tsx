@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { RegionSelector } from "@/components/RegionSelector";
-import { MetadataDrivenTable } from "@/components/MetadataDrivenTable";
+import { RecordManagement } from "@/components/RecordManagement";
 import { AudioAssetManager } from "@/components/AudioAssetManager";
 import { AuditTrailViewer } from "@/components/AuditTrailViewer";
 import { DownloadConfigModal } from "@/components/DownloadConfigModal";
@@ -262,14 +262,26 @@ const Index = () => {
               onTableSelect={setSelectedTableId}
             />
 
-            {/* Metadata-Driven Dynamic Table */}
+            {/* Record Management with Pagination and Filtering */}
             {selectedTable && (
               <div className="glass rounded-xl p-6 border border-border">
-                <MetadataDrivenTable
-                  entityId={selectedTable.name}
-                  country={country}
-                  businessUnit={businessUnit}
+                <RecordManagement
+                  tableName={selectedTable.name}
+                  columns={mockColumns}
+                  records={paginatedRecords}
+                  pagination={{
+                    currentPage,
+                    pageSize,
+                    totalRecords,
+                    totalPages,
+                  }}
+                  isLoading={isLoading}
+                  onAddRecord={() => {}}
+                  onBulkUpload={() => {}}
                   onViewAudit={() => {}}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  onFilterChange={handleFilterChange}
                 />
               </div>
             )}
