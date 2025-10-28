@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -155,7 +155,7 @@ export const AuditTrailViewer = () => {
   };
 
   const renderAuditTimeline = (events: AuditEvent[]) => (
-    <div className="relative space-y-4">
+    <div className="relative space-y-3">
       <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
       {events.map((event, index) => {
         const isExpanded = expandedEvents.has(event.id);
@@ -226,179 +226,235 @@ export const AuditTrailViewer = () => {
   );
 
   return (
-    <div className="flex flex-col space-y-4 h-full overflow-hidden">
+    <div className="flex flex-col space-y-3 h-full overflow-hidden">
       <div className="flex-shrink-0">
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <History className="w-5 h-5 text-primary" />
           Audit Trail
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-0.5">
           Complete history of all configuration changes and access logs
         </p>
       </div>
 
-      {/* View Mode Tabs */}
-      <div className="flex-shrink-0">
-        <div className="inline-flex items-center gap-1 p-1 glass rounded-lg border border-border">
-          <button
-            onClick={() => {
-              setViewMode("all");
-              setCurrentPage(1);
-            }}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded transition-all",
-              viewMode === "all"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            All Audit
-          </button>
-          <button
-            onClick={() => {
-              setViewMode("my");
-              setCurrentPage(1);
-            }}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded transition-all",
-              viewMode === "my"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            My Audit
-          </button>
+      <Tabs 
+        value={viewMode} 
+        onValueChange={(value) => {
+          setViewMode(value as "my" | "all");
+          setCurrentPage(1);
+        }}
+        className="flex-1 overflow-hidden flex flex-col"
+      >
+        {/* View Mode Tabs */}
+        <div className="flex-shrink-0">
+          <TabsList className="glass border border-border/50 w-fit h-8">
+            <TabsTrigger value="my" className="text-xs h-7 px-3">
+              My Audit
+            </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs h-7 px-3">
+              All Audit
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex-shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Action Type</label>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="glass border-border focus:border-primary">
-                <SelectValue placeholder="All Actions" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border">
-                <SelectItem value="all">All Actions</SelectItem>
-                <SelectItem value="UPDATE">Update</SelectItem>
-                <SelectItem value="INSERT">Insert</SelectItem>
-                <SelectItem value="DELETE">Delete</SelectItem>
-                <SelectItem value="DOWNLOAD">Download</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Filters */}
+        <div className="flex-shrink-0 mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Action Type</label>
+              <Select value={actionFilter} onValueChange={setActionFilter}>
+                <SelectTrigger className="glass border-border focus:border-primary">
+                  <SelectValue placeholder="All Actions" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border">
+                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="UPDATE">Update</SelectItem>
+                  <SelectItem value="INSERT">Insert</SelectItem>
+                  <SelectItem value="DELETE">Delete</SelectItem>
+                  <SelectItem value="DOWNLOAD">Download</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Table Name</label>
+              <Input
+                placeholder="Filter by table..."
+                value={tableNameFilter}
+                onChange={(e) => setTableNameFilter(e.target.value)}
+                className="glass border-border focus:border-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">User ID</label>
+              <Input
+                placeholder="Filter by user..."
+                value={userIdFilter}
+                onChange={(e) => setUserIdFilter(e.target.value)}
+                className="glass border-border focus:border-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Reason</label>
+              <Input
+                placeholder="Filter by reason..."
+                value={reasonFilter}
+                onChange={(e) => setReasonFilter(e.target.value)}
+                className="glass border-border focus:border-primary"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Table Name</label>
-            <Input
-              placeholder="Filter by table..."
-              value={tableNameFilter}
-              onChange={(e) => setTableNameFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">User ID</label>
-            <Input
-              placeholder="Filter by user..."
-              value={userIdFilter}
-              onChange={(e) => setUserIdFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Reason</label>
-            <Input
-              placeholder="Filter by reason..."
-              value={reasonFilter}
-              onChange={(e) => setReasonFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-        </div>
-        {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setActionFilter("all");
-              setTableNameFilter("");
-              setUserIdFilter("");
-              setReasonFilter("");
-              setCurrentPage(1);
-            }}
-            className="mt-4 glass-hover border-primary/30 text-foreground hover:text-primary"
-          >
-            Clear Filters
-          </Button>
-        )}
-      </div>
-
-      {/* Audit Trail Content */}
-      <div className="flex-1 overflow-auto min-h-0">
-        {paginatedEvents.length > 0 ? (
-          renderAuditTimeline(paginatedEvents)
-        ) : (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            No audit events found
-          </div>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {filteredEvents.length > 0 && (
-        <div className="flex-shrink-0 flex items-center justify-between gap-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
-            </span>
-            <Select
-              value={itemsPerPage.toString()}
-              onValueChange={(value) => {
-                setItemsPerPage(Number(value));
+          {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setActionFilter("all");
+                setTableNameFilter("");
+                setUserIdFilter("");
+                setReasonFilter("");
                 setCurrentPage(1);
               }}
+              className="mt-3 glass-hover border-primary/30 text-foreground hover:text-primary"
             >
-              <SelectTrigger className="glass border-border w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass border-border">
-                <SelectItem value="5">5 / page</SelectItem>
-                <SelectItem value="10">10 / page</SelectItem>
-                <SelectItem value="20">20 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="glass-hover"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              Clear Filters
             </Button>
-            <span className="text-sm text-muted-foreground px-2">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="glass-hover"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+          )}
         </div>
-      )}
+
+        <TabsContent value="my" className="flex-1 overflow-hidden flex flex-col">
+          {/* Audit Trail Content */}
+          <div className="flex-1 overflow-auto min-h-0">
+            {paginatedEvents.length > 0 ? (
+              renderAuditTimeline(paginatedEvents)
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                No audit events found
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredEvents.length > 0 && (
+            <div className="flex-shrink-0 flex items-center justify-between gap-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+                </span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="glass border-border w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border">
+                    <SelectItem value="5">5 / page</SelectItem>
+                    <SelectItem value="10">10 / page</SelectItem>
+                    <SelectItem value="20">20 / page</SelectItem>
+                    <SelectItem value="50">50 / page</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="glass-hover"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="glass-hover"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="all" className="flex-1 overflow-hidden flex flex-col">
+          {/* Audit Trail Content */}
+          <div className="flex-1 overflow-auto min-h-0">
+            {paginatedEvents.length > 0 ? (
+              renderAuditTimeline(paginatedEvents)
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                No audit events found
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredEvents.length > 0 && (
+            <div className="flex-shrink-0 flex items-center justify-between gap-4 pt-3 border-t border-border">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+                </span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="glass border-border w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border">
+                    <SelectItem value="5">5 / page</SelectItem>
+                    <SelectItem value="10">10 / page</SelectItem>
+                    <SelectItem value="20">20 / page</SelectItem>
+                    <SelectItem value="50">50 / page</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="glass-hover"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="glass-hover"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

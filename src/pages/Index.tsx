@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { GlobalFilter } from "@/components/GlobalFilter";
+import { SmartFilter } from "@/components/SmartFilter";
 import { DynamicEditableTable } from "@/components/DynamicEditableTable";
 import { AddRowModal } from "@/components/AddRowModal";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
@@ -18,7 +19,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { configApiService } from "@/services/apiToggle";
 import { useToast } from "@/hooks/use-toast";
 import type { EntityMetadata } from "@/types/metadata";
-import type { EntityRowResponse, DataRequest } from "@/types/api";
+import type { EntityRowResponse, DataRequest, SmartFilterGroup } from "@/types/api";
 import {
   ChevronLeft,
   ChevronRight,
@@ -68,6 +69,7 @@ const Index = () => {
   // Search and filter state
   const [globalSearch, setGlobalSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [smartFilter, setSmartFilter] = useState<SmartFilterGroup | null>(null);
 
   // Pagination
   const {
@@ -107,7 +109,7 @@ const Index = () => {
     if (metadata && country && businessUnit) {
       loadData();
     }
-  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters]);
+  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters, smartFilter]);
 
   const loadMetadata = async () => {
     if (!selectedTableId) return;
@@ -145,6 +147,7 @@ const Index = () => {
         pageSize: pagination.pageSize,
         globalSearch: globalSearch || undefined,
         filters: columnFilters,
+        smartFilter: smartFilter || undefined,
       };
 
       const dataResponse = await configApiService.getEntityData(request);
@@ -171,6 +174,11 @@ const Index = () => {
       ...prev,
       [columnName]: value,
     }));
+    resetToFirstPage();
+  }, [resetToFirstPage]);
+
+  const handleSmartFilterApply = useCallback((filterGroup: SmartFilterGroup | null) => {
+    setSmartFilter(filterGroup);
     resetToFirstPage();
   }, [resetToFirstPage]);
 
@@ -337,7 +345,7 @@ const Index = () => {
 
             {/* Main Content */}
             {selectedTableId && (
-              <div className="flex-1 flex flex-col space-y-4 overflow-hidden min-h-0">
+              <div className="flex-1 flex flex-col space-y-2 overflow-hidden min-h-0">
                 {isLoadingMetadata ? (
                   <div className="space-y-4">
                     <Skeleton className="h-12 w-full" />
@@ -346,7 +354,7 @@ const Index = () => {
                 ) : metadata ? (
                   <>
                     {/* Compact Table Info & Actions Bar */}
-                    <div className="glass rounded-xl p-4 border border-border shadow-lg flex-shrink-0">
+                    <div className="glass rounded-xl p-3 border border-border shadow-lg flex-shrink-0">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
                           <div>
@@ -367,18 +375,17 @@ const Index = () => {
                             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
                               type="text"
-                              placeholder="Search all columns..."
+                              placeholder="Search by user name..."
                               value={globalSearch}
                               onChange={(e) => handleGlobalSearch(e.target.value)}
                               className="pl-8 pr-3 py-1.5 text-sm glass border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary w-64"
                             />
                           </div>
                           
-                          {/* Global Filter */}
-                          <GlobalFilter
+                          {/* Smart Filter */}
+                          <SmartFilter
                             metadata={metadata}
-                            filters={columnFilters}
-                            onFiltersChange={setColumnFilters}
+                            onFilterApply={handleSmartFilterApply}
                             isLoading={isLoadingData}
                           />
                           {pendingRowCount > 0 && (
@@ -397,7 +404,7 @@ const Index = () => {
                               onClick={() => setAddRowModalOpen(true)}
                               variant="outline"
                               size="sm"
-                              className="glass-hover border-primary/30 hover:text-primary"
+                              className="glass-hover border-border"
                             >
                               <Plus className="w-4 h-4 mr-2" />
                               Add Row
@@ -463,7 +470,7 @@ const Index = () => {
 
                     {/* Pagination */}
                     {pagination.totalCount > 0 && (
-                      <div className="glass rounded-xl p-4 border border-border flex-shrink-0">
+                      <div className="glass rounded-xl p-3 border border-border flex-shrink-0">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                           <div className="flex items-center gap-2">
                             <label className="text-sm text-muted-foreground">Rows per page:</label>

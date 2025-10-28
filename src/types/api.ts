@@ -35,6 +35,21 @@ export interface MetadataResponse {
   permissions: EntityPermissionsResponse;
 }
 
+// Smart Filter types
+export type FilterOperator = "equals" | "contains" | "starts_with" | "ends_with" | "greater_than" | "less_than" | "not_equals";
+export type LogicalOperator = "AND" | "OR";
+
+export interface FilterCondition {
+  column: string;
+  operator: FilterOperator;
+  value: string;
+}
+
+export interface SmartFilterGroup {
+  conditions: FilterCondition[];
+  logicalOperator: LogicalOperator;
+}
+
 // Data API types
 export interface DataRequest {
   entityId: string;
@@ -43,6 +58,7 @@ export interface DataRequest {
   page: number;
   pageSize: number;
   filters?: Record<string, string>;
+  smartFilter?: SmartFilterGroup;
   globalSearch?: string;
   sortBy?: string;
   sortDirection?: "asc" | "desc";

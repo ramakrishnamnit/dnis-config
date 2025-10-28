@@ -1,8 +1,59 @@
-# Welcome to your Lovable project
+# HSBC Config Opus - Configuration Management System
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/2ca0aed7-f77a-4b91-a1f8-022983eb6b8a
+
+## Overview
+
+A modern, metadata-driven configuration management system built for enterprise use. Features include dynamic tables, smart filtering with AND/OR logic, bulk operations, audit trails, and more.
+
+## Key Features
+
+### ⚡ Smart Filter (NEW!)
+Advanced filtering with AND/OR logic operations. Create complex queries across multiple columns without SQL knowledge.
+- 📖 [Smart Filter Feature Documentation](./SMART_FILTER_FEATURE.md)
+- 📚 [Quick Start Guide](./SMART_FILTER_GUIDE.md)
+
+### 🗃️ Configuration Management
+- Metadata-driven dynamic tables
+- Region-based configuration (Country + Business Unit)
+- Real-time data editing with optimistic concurrency control
+- Bulk upload via Excel
+- Template download with metadata
+
+### 🔍 Search & Filter
+- Global search across all columns
+- Smart filter with AND/OR conditions
+- Column-specific filters
+- Multiple filter operators (equals, contains, greater than, etc.)
+
+### 📊 Data Management
+- Add/Edit/View records
+- Batch operations
+- Edit reason tracking
+- Version control with OCC
+- Excel import/export
+
+### 🎵 Audio Asset Management
+- Upload and manage audio files
+- Play audio in-browser
+- Metadata management
+- Batch operations
+
+### 📜 Audit Trail
+- Complete change history
+- User tracking
+- Edit reason logging
+- Version comparison
+
+## Documentation
+
+- [Quick Start](./QUICK_START.md)
+- [Features Summary](./FEATURES_SUMMARY.md)
+- [Backend Integration](./BACKEND_INTEGRATION.md)
+- [Smart Filter Guide](./SMART_FILTER_GUIDE.md)
+- [Editing Guide](./EDITING_GUIDE.md)
 
 ## How can I edit this code?
 
