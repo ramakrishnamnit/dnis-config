@@ -17,7 +17,7 @@ interface HeaderProps {
 
 export const Header = ({ theme, onThemeChange }: HeaderProps) => {
   return (
-    <header className="glass sticky top-0 z-50 border-b border-border">
+    <header className="glass-strong sticky top-0 z-50 border-b border-border shadow-md">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between gap-6">
           {/* Logo & Title */}
@@ -65,7 +65,7 @@ export const Header = ({ theme, onThemeChange }: HeaderProps) => {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 glass border-border">
+              <DropdownMenuContent align="end" className="w-56 glass-strong">
                 <DropdownMenuLabel className="text-foreground">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem className="text-foreground hover:bg-card-hover">

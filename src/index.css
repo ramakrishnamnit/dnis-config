@@ -18,50 +18,62 @@ All colors MUST be HSL.
     --charcoal-light: 0 0% 18%;
     
     /* Glassmorphic Surfaces */
-    --glass-bg: 0 0% 100% / 0.05;
-    --glass-border: 0 0% 100% / 0.1;
-    --glass-shadow: 0 0% 0% / 0.2;
+    --glass-bg: 0 0% 100% / 0.08;
+    --glass-border: 0 0% 100% / 0.15;
+    --glass-shadow: 0 0% 0% / 0.3;
+    --glass-hover: 0 0% 100% / 0.12;
     
     /* Semantic Tokens */
-    --background: 0 0% 8%;
-    --background-gradient-start: 0 0% 8%;
-    --background-gradient-end: 0 0% 12%;
+    --background: 0 0% 6%;
+    --background-gradient-start: 0 0% 6%;
+    --background-gradient-end: 0 0% 11%;
     
     --foreground: 0 0% 98%;
     
-    --card: 0 0% 100% / 0.03;
+    --card: 0 0% 100% / 0.06;
     --card-foreground: 0 0% 98%;
-    --card-hover: 0 0% 100% / 0.08;
+    --card-hover: 0 0% 100% / 0.12;
     
-    --popover: 0 0% 12%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 98%;
     
     --primary: 355 100% 43%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 355 100% 55%;
+    --primary-hover: 355 100% 48%;
     
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 95%;
+    --secondary-hover: 0 0% 20%;
     
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 65%;
     
     --accent: 355 100% 43%;
     --accent-foreground: 0 0% 100%;
+    --accent-hover: 355 100% 48%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 100% / 0.1;
-    --input: 0 0% 100% / 0.05;
+    --border: 0 0% 100% / 0.12;
+    --input: 0 0% 100% / 0.08;
     --ring: 355 100% 43%;
     
     --radius: 0.75rem;
     
     /* Custom Effects */
-    --glow-red: 0 0 20px hsl(355 100% 55% / 0.3);
-    --glow-red-strong: 0 0 30px hsl(355 100% 55% / 0.5);
-    --backdrop-blur: blur(12px);
+    --glow-red: 0 0 24px hsl(355 100% 55% / 0.4);
+    --glow-red-strong: 0 0 40px hsl(355 100% 55% / 0.6);
+    --glow-subtle: 0 0 16px hsl(355 100% 55% / 0.2);
+    --backdrop-blur: blur(16px);
+    --backdrop-blur-strong: blur(24px);
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.15);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.25);
+    --shadow-xl: 0 12px 48px hsl(0 0% 0% / 0.3);
     
     /* Status Colors */
     --status-success: 142 76% 36%;
@@ -79,50 +91,62 @@ All colors MUST be HSL.
     --charcoal-light: 0 0% 18%;
     
     /* Glassmorphic Surfaces */
-    --glass-bg: 0 0% 0% / 0.03;
-    --glass-border: 0 0% 0% / 0.1;
-    --glass-shadow: 0 0% 0% / 0.1;
+    --glass-bg: 0 0% 100% / 0.6;
+    --glass-border: 0 0% 0% / 0.12;
+    --glass-shadow: 0 0% 0% / 0.08;
+    --glass-hover: 0 0% 100% / 0.8;
     
     /* Semantic Tokens */
-    --background: 0 0% 98%;
+    --background: 0 0% 97%;
     --background-gradient-start: 0 0% 98%;
-    --background-gradient-end: 0 0% 95%;
+    --background-gradient-end: 0 0% 94%;
     
-    --foreground: 0 0% 8%;
+    --foreground: 0 0% 10%;
     
-    --card: 0 0% 0% / 0.02;
-    --card-foreground: 0 0% 8%;
-    --card-hover: 0 0% 0% / 0.05;
+    --card: 0 0% 100% / 0.7;
+    --card-foreground: 0 0% 10%;
+    --card-hover: 0 0% 100% / 0.9;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
+    --popover-foreground: 0 0% 10%;
     
     --primary: 355 100% 43%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 355 100% 55%;
+    --primary-hover: 355 100% 38%;
     
-    --secondary: 0 0% 90%;
-    --secondary-foreground: 0 0% 8%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 12%;
+    --secondary-hover: 0 0% 90%;
     
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
     
     --accent: 355 100% 43%;
     --accent-foreground: 0 0% 100%;
+    --accent-hover: 355 100% 38%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 0% / 0.15;
-    --input: 0 0% 0% / 0.05;
+    --border: 0 0% 0% / 0.12;
+    --input: 0 0% 100% / 0.8;
     --ring: 355 100% 43%;
     
     --radius: 0.75rem;
     
     /* Custom Effects */
-    --glow-red: 0 0 20px hsl(355 100% 55% / 0.2);
-    --glow-red-strong: 0 0 30px hsl(355 100% 55% / 0.4);
-    --backdrop-blur: blur(12px);
+    --glow-red: 0 0 20px hsl(355 100% 55% / 0.25);
+    --glow-red-strong: 0 0 32px hsl(355 100% 55% / 0.4);
+    --glow-subtle: 0 0 12px hsl(355 100% 55% / 0.15);
+    --backdrop-blur: blur(16px);
+    --backdrop-blur-strong: blur(24px);
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.06);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 12px 48px hsl(0 0% 0% / 0.12);
     
     /* Status Colors */
     --status-success: 142 76% 36%;
@@ -162,7 +186,16 @@ All colors MUST be HSL.
     background: hsl(var(--glass-bg));
     backdrop-filter: var(--backdrop-blur);
     -webkit-backdrop-filter: var(--backdrop-blur);
-    border: 1px solid hsl(var(--glass-border));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .glass-strong {
+    background: hsl(var(--card));
+    backdrop-filter: var(--backdrop-blur-strong);
+    -webkit-backdrop-filter: var(--backdrop-blur-strong);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-md);
   }
   
   .glass-hover {
@@ -170,9 +203,9 @@ All colors MUST be HSL.
   }
   
   .glass-hover:hover {
-    background: hsl(var(--card-hover));
-    box-shadow: 0 8px 32px hsl(var(--glass-shadow)),
-                0 0 0 1px hsl(var(--glass-border));
+    background: hsl(var(--glass-hover));
+    box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--border));
+    transform: translateY(-1px);
   }
   
   /* Glow Effects */
@@ -182,6 +215,10 @@ All colors MUST be HSL.
   
   .glow-red-strong {
     box-shadow: var(--glow-red-strong);
+  }
+  
+  .glow-subtle {
+    box-shadow: var(--glow-subtle);
   }
   
   .hover-glow-red {
@@ -199,6 +236,17 @@ All colors MUST be HSL.
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* Surface Variants */
+  .surface-elevated {
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-md);
+  }
+  
+  .surface-floating {
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-lg);
   }
 }
 

@@ -12,7 +12,7 @@ export const NavigationTabs = () => {
   ];
   
   return (
-    <div>
+    <div className="glass-strong border-b border-border shadow-sm">
       <div className="container mx-auto px-6">
         <nav className="flex items-center gap-8" role="tablist">
           {tabs.map((tab) => {

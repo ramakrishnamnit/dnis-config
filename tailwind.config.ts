@@ -71,12 +71,18 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       backdropBlur: {
-        glass: "12px",
+        glass: "16px",
+        "glass-strong": "24px",
       },
       boxShadow: {
         glow: "var(--glow-red)",
         "glow-strong": "var(--glow-red-strong)",
-        glass: "0 8px 32px hsl(var(--glass-shadow))",
+        "glow-subtle": "var(--glow-subtle)",
+        glass: "var(--shadow-lg)",
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
       },
       keyframes: {
         "accordion-down": {

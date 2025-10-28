@@ -23,7 +23,7 @@ export const Layout = ({ children }: LayoutProps) => {
       <NavigationTabs />
       <main className="flex-1 overflow-hidden bg-background">
         <div className="h-full flex flex-col container mx-auto px-6 py-6">
-          <div className="glass rounded-xl border border-border shadow-lg p-6 flex-1 overflow-hidden flex flex-col">
+          <div className="glass-strong rounded-xl shadow-lg p-6 flex-1 overflow-hidden flex flex-col">
             {children}
           </div>
         </div>
