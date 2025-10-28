@@ -175,6 +175,23 @@ All colors MUST be HSL.
                 0 0 0 1px hsl(var(--glass-border));
   }
   
+  /* Enhanced Glassmorphic Effects */
+  .glass-card {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 4px 24px hsl(var(--glass-shadow));
+  }
+  
+  .glass-panel {
+    background: hsl(var(--popover) / 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 8px 32px -8px hsl(var(--glass-shadow));
+  }
+  
   /* Glow Effects */
   .glow-red {
     box-shadow: var(--glow-red);
@@ -193,12 +210,40 @@ All colors MUST be HSL.
     transform: translateY(-2px);
   }
   
+  .shadow-glass {
+    box-shadow: 0 8px 32px -8px hsl(var(--glass-shadow)),
+                0 0 0 1px hsl(var(--glass-border));
+  }
+  
   /* Text Gradients */
   .text-gradient-red {
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* Animated Borders */
+  .border-glow {
+    position: relative;
+  }
+  
+  .border-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--primary)), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .border-glow:hover::before {
+    opacity: 1;
   }
 }
 

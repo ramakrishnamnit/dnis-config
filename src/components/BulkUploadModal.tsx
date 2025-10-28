@@ -158,10 +158,10 @@ export const BulkUploadModal = ({
       if (!open) handleReset();
       onOpenChange(open);
     }}>
-      <DialogContent className="glass border-border sm:max-w-[800px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] border-glow">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Upload className="w-5 h-5 text-primary" />
+            <Upload className="w-5 h-5 text-primary glow-red" />
             Bulk Upload - {entityName}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
