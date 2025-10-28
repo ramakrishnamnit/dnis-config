@@ -1,6 +1,5 @@
-import { Search, Download, User, LogOut, Shield } from "lucide-react";
+import { User, LogOut, Shield, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -12,12 +11,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
-  onDownloadClick: () => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
+  theme: "dark" | "light";
+  onThemeChange: (theme: "dark" | "light") => void;
 }
 
-export const Header = ({ onDownloadClick, searchQuery, onSearchChange }: HeaderProps) => {
+export const Header = ({ theme, onThemeChange }: HeaderProps) => {
   return (
     <header className="glass sticky top-0 z-50 border-b border-border">
       <div className="container mx-auto px-6 py-4">
@@ -35,26 +33,22 @@ export const Header = ({ onDownloadClick, searchQuery, onSearchChange }: HeaderP
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search configuration tables..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 glass border-border focus:border-primary focus:glow-red transition-all"
-            />
-          </div>
+          <div className="flex-1" />
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
             <Button
-              onClick={onDownloadClick}
+              onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
               variant="outline"
+              size="icon"
               className="glass-hover border-primary/30 text-foreground hover:text-primary hover:glow-red"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Download Config
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
             </Button>
 
             {/* Session Secure Indicator */}

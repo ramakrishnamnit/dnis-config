@@ -1,8 +1,16 @@
-import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AuditEvent {
   id: string;
@@ -96,8 +104,25 @@ export const AuditTrailViewer = () => {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const currentUser = "john.doe@hsbc.com"; // Mock current user
   
-  const myAuditEvents = mockAuditEvents.filter(event => event.userId === currentUser);
-  const allAuditEvents = mockAuditEvents;
+  // Filter states
+  const [actionFilter, setActionFilter] = useState<string>("all");
+  const [tableNameFilter, setTableNameFilter] = useState<string>("");
+  const [userIdFilter, setUserIdFilter] = useState<string>("");
+  const [reasonFilter, setReasonFilter] = useState<string>("");
+  
+  // Apply filters
+  const applyFilters = (events: AuditEvent[]) => {
+    return events.filter(event => {
+      if (actionFilter !== "all" && event.action !== actionFilter) return false;
+      if (tableNameFilter && !event.tableName.toLowerCase().includes(tableNameFilter.toLowerCase())) return false;
+      if (userIdFilter && !event.userId.toLowerCase().includes(userIdFilter.toLowerCase())) return false;
+      if (reasonFilter && !event.reason.toLowerCase().includes(reasonFilter.toLowerCase())) return false;
+      return true;
+    });
+  };
+
+  const myAuditEvents = applyFilters(mockAuditEvents.filter(event => event.userId === currentUser));
+  const allAuditEvents = applyFilters(mockAuditEvents);
 
   const toggleEvent = (eventId: string) => {
     const newExpanded = new Set(expandedEvents);
@@ -190,6 +215,73 @@ export const AuditTrailViewer = () => {
         <p className="text-sm text-muted-foreground mt-1">
           Complete history of all configuration changes and access logs
         </p>
+      </div>
+
+      {/* Filters */}
+      <div className="glass rounded-xl p-6 border border-border">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Filters</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Action Type</label>
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="glass border-border focus:border-primary">
+                <SelectValue placeholder="All Actions" />
+              </SelectTrigger>
+              <SelectContent className="glass border-border">
+                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="UPDATE">Update</SelectItem>
+                <SelectItem value="INSERT">Insert</SelectItem>
+                <SelectItem value="DELETE">Delete</SelectItem>
+                <SelectItem value="DOWNLOAD">Download</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Table Name</label>
+            <Input
+              placeholder="Filter by table..."
+              value={tableNameFilter}
+              onChange={(e) => setTableNameFilter(e.target.value)}
+              className="glass border-border focus:border-primary"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">User ID</label>
+            <Input
+              placeholder="Filter by user..."
+              value={userIdFilter}
+              onChange={(e) => setUserIdFilter(e.target.value)}
+              className="glass border-border focus:border-primary"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Reason</label>
+            <Input
+              placeholder="Filter by reason..."
+              value={reasonFilter}
+              onChange={(e) => setReasonFilter(e.target.value)}
+              className="glass border-border focus:border-primary"
+            />
+          </div>
+        </div>
+        {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setActionFilter("all");
+              setTableNameFilter("");
+              setUserIdFilter("");
+              setReasonFilter("");
+            }}
+            className="mt-4 glass-hover border-primary/30 text-foreground hover:text-primary"
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="all" className="space-y-4">

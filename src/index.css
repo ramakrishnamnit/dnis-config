@@ -7,8 +7,9 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
-    /* HSBC Enterprise Theme - Glassmorphic Design */
+  :root,
+  [data-theme="dark"] {
+    /* HSBC Enterprise Theme - Dark Mode (Glassmorphic Design) */
     
     /* Core Brand Colors */
     --hsbc-red: 355 100% 43%;
@@ -60,6 +61,67 @@ All colors MUST be HSL.
     /* Custom Effects */
     --glow-red: 0 0 20px hsl(355 100% 55% / 0.3);
     --glow-red-strong: 0 0 30px hsl(355 100% 55% / 0.5);
+    --backdrop-blur: blur(12px);
+    
+    /* Status Colors */
+    --status-success: 142 76% 36%;
+    --status-warning: 38 92% 50%;
+    --status-info: 199 89% 48%;
+  }
+
+  [data-theme="light"] {
+    /* HSBC Enterprise Theme - Light Mode */
+    
+    /* Core Brand Colors */
+    --hsbc-red: 355 100% 43%;
+    --hsbc-red-glow: 355 100% 55%;
+    --charcoal: 0 0% 11%;
+    --charcoal-light: 0 0% 18%;
+    
+    /* Glassmorphic Surfaces */
+    --glass-bg: 0 0% 0% / 0.03;
+    --glass-border: 0 0% 0% / 0.1;
+    --glass-shadow: 0 0% 0% / 0.1;
+    
+    /* Semantic Tokens */
+    --background: 0 0% 98%;
+    --background-gradient-start: 0 0% 98%;
+    --background-gradient-end: 0 0% 95%;
+    
+    --foreground: 0 0% 8%;
+    
+    --card: 0 0% 0% / 0.02;
+    --card-foreground: 0 0% 8%;
+    --card-hover: 0 0% 0% / 0.05;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+    
+    --primary: 355 100% 43%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 355 100% 55%;
+    
+    --secondary: 0 0% 90%;
+    --secondary-foreground: 0 0% 8%;
+    
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 45%;
+    
+    --accent: 355 100% 43%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 0% / 0.15;
+    --input: 0 0% 0% / 0.05;
+    --ring: 355 100% 43%;
+    
+    --radius: 0.75rem;
+    
+    /* Custom Effects */
+    --glow-red: 0 0 20px hsl(355 100% 55% / 0.2);
+    --glow-red-strong: 0 0 30px hsl(355 100% 55% / 0.4);
     --backdrop-blur: blur(12px);
     
     /* Status Colors */
