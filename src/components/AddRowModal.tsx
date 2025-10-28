@@ -316,10 +316,10 @@ export const AddRowModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] border-glow">
+      <DialogContent className="glass border-border sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Plus className="w-5 h-5 text-primary glow-red" />
+            <Plus className="w-5 h-5 text-primary" />
             Add New {metadata.entityName} Record
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">

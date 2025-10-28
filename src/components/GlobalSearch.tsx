@@ -18,7 +18,7 @@ interface GlobalSearchProps {
 
 export const GlobalSearch = ({
   onSearch,
-  placeholder = "Search by user name...",
+  placeholder = "Search across all columns...",
   debounceMs = 500,
   isLoading = false,
   className,

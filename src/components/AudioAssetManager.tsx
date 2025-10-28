@@ -28,14 +28,102 @@ export const AudioAssetManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentUser = "John Doe"; // Mock current user
   
-  const [audioAssets, setAudioAssets] = useState<AudioAsset[]>([
+  const [audioAssets] = useState<AudioAsset[]>([
     {
       id: "1",
-      name: "Thank you for callin.wav",
-      type: "audio/wav",
-      uploader: "System",
+      name: "welcome_message_uk.mp3",
+      type: "audio/mpeg",
+      uploader: "John Doe",
       uploadDate: "2025-01-15",
+      size: "2.3 MB",
+    },
+    {
+      id: "2",
+      name: "hold_music_corporate.wav",
+      type: "audio/wav",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-14",
+      size: "5.1 MB",
+    },
+    {
+      id: "3",
+      name: "queue_music_jazz.mp3",
+      type: "audio/mpeg",
+      uploader: "John Doe",
+      uploadDate: "2025-01-13",
+      size: "3.8 MB",
+    },
+    {
+      id: "4",
+      name: "goodbye_message_us.mp3",
+      type: "audio/mpeg",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-12",
+      size: "1.9 MB",
+    },
+    {
+      id: "5",
+      name: "ivr_menu_main.wav",
+      type: "audio/wav",
+      uploader: "John Doe",
+      uploadDate: "2025-01-11",
+      size: "4.2 MB",
+    },
+    {
+      id: "6",
+      name: "transfer_tone.mp3",
+      type: "audio/mpeg",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-10",
+      size: "0.8 MB",
+    },
+    {
+      id: "7",
+      name: "voicemail_greeting.wav",
+      type: "audio/wav",
+      uploader: "John Doe",
+      uploadDate: "2025-01-09",
+      size: "3.1 MB",
+    },
+    {
+      id: "8",
+      name: "busy_signal.mp3",
+      type: "audio/mpeg",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-08",
       size: "1.2 MB",
+    },
+    {
+      id: "9",
+      name: "callback_prompt.wav",
+      type: "audio/wav",
+      uploader: "John Doe",
+      uploadDate: "2025-01-07",
+      size: "2.7 MB",
+    },
+    {
+      id: "10",
+      name: "emergency_alert.mp3",
+      type: "audio/mpeg",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-06",
+      size: "2.1 MB",
+    },
+    {
+      id: "11",
+      name: "customer_survey.wav",
+      type: "audio/wav",
+      uploader: "John Doe",
+      uploadDate: "2025-01-05",
+      size: "5.5 MB",
+    },
+    {
+      id: "12",
+      name: "promotional_message.mp3",
+      type: "audio/mpeg",
+      uploader: "Jane Smith",
+      uploadDate: "2025-01-04",
+      size: "3.3 MB",
     },
   ]);
 
@@ -79,41 +167,9 @@ export const AudioAssetManager = () => {
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    // Validate that all files are WAV format
-    const invalidFiles = Array.from(files).filter(file => !file.name.endsWith('.wav'));
-    
-    if (invalidFiles.length > 0) {
-      toast.error(`Only WAV files are allowed. Please upload .wav files only.`);
-      // Reset the input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
-    }
-
-    // Process valid WAV files
-    const validFiles = Array.from(files).filter(file => file.name.endsWith('.wav'));
-    
-    validFiles.forEach((file) => {
-      const newAsset: AudioAsset = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: "audio/wav",
-        uploader: currentUser,
-        uploadDate: new Date().toISOString().split('T')[0],
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      };
-      
-      setAudioAssets(prev => [...prev, newAsset]);
-    });
-    
-    toast.success(`Successfully uploaded ${validFiles.length} WAV file(s)`);
-    
-    // Reset the input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (files && files.length > 0) {
+      toast.success(`Uploading ${files.length} file(s)...`);
+      // Handle file upload logic here
     }
   };
 
@@ -127,61 +183,20 @@ export const AudioAssetManager = () => {
       audioRef.current?.pause();
       setPlayingAudioId(null);
     } else {
-      // Stop any currently playing audio
+      // Play new audio
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
       }
+      // In a real app, you would load the actual audio file here
+      // For now, we'll just show a toast
+      toast.info(`Playing: ${audioName}`);
+      setPlayingAudioId(audioId);
       
-      // Create new audio element and play
-      const audio = new Audio(`/audio/${audioName}`);
-      audioRef.current = audio;
-      
-      audio.play()
-        .then(() => {
-          toast.info(`Playing: ${audioName}`);
-          setPlayingAudioId(audioId);
-        })
-        .catch((error) => {
-          console.error('Error playing audio:', error);
-          toast.error(`Failed to play audio: ${audioName}`);
-          setPlayingAudioId(null);
-        });
-      
-      // Handle audio end event
-      audio.onended = () => {
+      // Simulate audio playback (in real app, this would be handled by audio element)
+      setTimeout(() => {
         setPlayingAudioId(null);
-      };
-      
-      // Handle audio error event
-      audio.onerror = () => {
-        toast.error(`Error loading audio file: ${audioName}`);
-        setPlayingAudioId(null);
-      };
+      }, 3000);
     }
-  };
-
-  const handleDelete = (audioId: string, audioName: string) => {
-    // Stop audio if it's currently playing
-    if (playingAudioId === audioId) {
-      audioRef.current?.pause();
-      setPlayingAudioId(null);
-    }
-    
-    // Remove from list
-    setAudioAssets(prev => prev.filter(asset => asset.id !== audioId));
-    toast.success(`Deleted: ${audioName}`);
-  };
-
-  const handleDownload = (audioName: string) => {
-    // Create a download link
-    const link = document.createElement('a');
-    link.href = `/audio/${audioName}`;
-    link.download = audioName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Downloading: ${audioName}`);
   };
 
   const renderAudioList = (assets: AudioAsset[], currentPage: number, totalPages: number, setPage: (page: number) => void) => (
@@ -252,7 +267,7 @@ export const AudioAssetManager = () => {
                     size="sm"
                     variant="outline"
                     className="glass-hover border-border"
-                    onClick={() => handleDownload(asset.name)}
+                    onClick={() => toast.success("Audio downloaded")}
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -260,7 +275,7 @@ export const AudioAssetManager = () => {
                     size="sm"
                     variant="outline"
                     className="glass-hover border-destructive/30 text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(asset.id, asset.name)}
+                    onClick={() => toast.success("Audio deleted")}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -314,14 +329,14 @@ export const AudioAssetManager = () => {
               Audio Asset Management
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Upload and manage WAV audio files for IVR and voice prompts (WAV format only)
+              Upload and manage audio files for IVR and voice prompts
             </p>
           </div>
           <div>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".wav,audio/wav"
+              accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/x-m4a"
               multiple
               onChange={handleFileInputChange}
               className="hidden"
@@ -362,8 +377,10 @@ export const AudioAssetManager = () => {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent className="glass border-border">
-                <SelectItem value="all">All WAV Files</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="audio/mpeg">MP3</SelectItem>
                 <SelectItem value="audio/wav">WAV</SelectItem>
+                <SelectItem value="audio/m4a">M4A</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -148,10 +148,10 @@ export const DownloadConfigModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto border-glow">
+      <DialogContent className="glass border-border sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground flex items-center gap-2">
-            <Download className="w-5 h-5 text-primary glow-red" />
+            <Download className="w-5 h-5 text-primary" />
             Download Configuration Data
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
