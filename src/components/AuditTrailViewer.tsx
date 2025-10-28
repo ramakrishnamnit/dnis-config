@@ -1,9 +1,9 @@
-import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp, Filter } from "lucide-react";
+import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -104,15 +104,30 @@ export const AuditTrailViewer = () => {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const currentUser = "john.doe@hsbc.com"; // Mock current user
   
+  // View mode state
+  const [viewMode, setViewMode] = useState<"my" | "all">("all");
+  
   // Filter states
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableNameFilter, setTableNameFilter] = useState<string>("");
   const [userIdFilter, setUserIdFilter] = useState<string>("");
   const [reasonFilter, setReasonFilter] = useState<string>("");
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   // Apply filters
   const applyFilters = (events: AuditEvent[]) => {
-    return events.filter(event => {
+    let filtered = events;
+    
+    // Apply view mode filter first
+    if (viewMode === "my") {
+      filtered = filtered.filter(event => event.userId === currentUser);
+    }
+    
+    // Apply other filters
+    return filtered.filter(event => {
       if (actionFilter !== "all" && event.action !== actionFilter) return false;
       if (tableNameFilter && !event.tableName.toLowerCase().includes(tableNameFilter.toLowerCase())) return false;
       if (userIdFilter && !event.userId.toLowerCase().includes(userIdFilter.toLowerCase())) return false;
@@ -121,8 +136,13 @@ export const AuditTrailViewer = () => {
     });
   };
 
-  const myAuditEvents = applyFilters(mockAuditEvents.filter(event => event.userId === currentUser));
-  const allAuditEvents = applyFilters(mockAuditEvents);
+  const filteredEvents = applyFilters(mockAuditEvents);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
 
   const toggleEvent = (eventId: string) => {
     const newExpanded = new Set(expandedEvents);
@@ -206,8 +226,8 @@ export const AuditTrailViewer = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex flex-col space-y-4 h-full overflow-hidden">
+      <div className="flex-shrink-0">
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <History className="w-5 h-5 text-primary" />
           Audit Trail
@@ -217,12 +237,42 @@ export const AuditTrailViewer = () => {
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="glass rounded-xl p-6 border border-border">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Filters</h3>
+      {/* View Mode Tabs */}
+      <div className="flex-shrink-0">
+        <div className="inline-flex items-center gap-1 p-1 glass rounded-lg border border-border">
+          <button
+            onClick={() => {
+              setViewMode("all");
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded transition-all",
+              viewMode === "all"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            All Audit
+          </button>
+          <button
+            onClick={() => {
+              setViewMode("my");
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded transition-all",
+              viewMode === "my"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            My Audit
+          </button>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">Action Type</label>
@@ -276,6 +326,7 @@ export const AuditTrailViewer = () => {
               setTableNameFilter("");
               setUserIdFilter("");
               setReasonFilter("");
+              setCurrentPage(1);
             }}
             className="mt-4 glass-hover border-primary/30 text-foreground hover:text-primary"
           >
@@ -284,20 +335,70 @@ export const AuditTrailViewer = () => {
         )}
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList className="glass border border-border/50">
-          <TabsTrigger value="my">My Audit ({myAuditEvents.length})</TabsTrigger>
-          <TabsTrigger value="all">All Audit ({allAuditEvents.length})</TabsTrigger>
-        </TabsList>
+      {/* Audit Trail Content */}
+      <div className="flex-1 overflow-auto min-h-0">
+        {paginatedEvents.length > 0 ? (
+          renderAuditTimeline(paginatedEvents)
+        ) : (
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            No audit events found
+          </div>
+        )}
+      </div>
 
-        <TabsContent value="my">
-          {renderAuditTimeline(myAuditEvents)}
-        </TabsContent>
-
-        <TabsContent value="all">
-          {renderAuditTimeline(allAuditEvents)}
-        </TabsContent>
-      </Tabs>
+      {/* Pagination Controls */}
+      {filteredEvents.length > 0 && (
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+            </span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="glass border-border w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="glass border-border">
+                <SelectItem value="5">5 / page</SelectItem>
+                <SelectItem value="10">10 / page</SelectItem>
+                <SelectItem value="20">20 / page</SelectItem>
+                <SelectItem value="50">50 / page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="glass-hover"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground px-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="glass-hover"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

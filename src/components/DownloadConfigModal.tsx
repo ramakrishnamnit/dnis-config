@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Download, FileSpreadsheet, FileText, X, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Download, CheckCircle2, Globe, Building2, Table } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,31 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
+const countries = [
+  { value: "ALL", label: "All Countries" },
+  { value: "UK", label: "United Kingdom" },
+  { value: "US", label: "United States" },
+  { value: "HK", label: "Hong Kong" },
+  { value: "SG", label: "Singapore" },
+  { value: "CN", label: "China" },
+];
+
+const businessUnits = [
+  { value: "ALL", label: "All Business Units" },
+  { value: "CC", label: "Corporate Center" },
+  { value: "WPB", label: "Wealth & Personal Banking" },
+  { value: "CMB", label: "Commercial Banking" },
+  { value: "GBM", label: "Global Banking & Markets" },
+];
+
+const tables = [
+  { value: "ALL", label: "All Tables" },
+  { value: "UKCC_SERVICEPROFILE", label: "Service Profile" },
+  { value: "UKCC_CONFIG_MAIN", label: "Main Configuration" },
+  { value: "UKCC_ROUTING", label: "Routing Configuration" },
+  { value: "UKCC_USERS", label: "User Management" },
+];
+
 interface DownloadConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,15 +60,44 @@ export const DownloadConfigModal = ({
   businessUnit,
   hasSearchFilter,
 }: DownloadConfigModalProps) => {
-  const [downloadScope, setDownloadScope] = useState<"search" | "country" | "full">("search");
-  const [format, setFormat] = useState<"excel" | "csv">("excel");
+  const [downloadScope, setDownloadScope] = useState<"search" | "selected" | "all">("selected");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string>("ALL");
+  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState<string>("ALL");
+  const [selectedTable, setSelectedTable] = useState<string>("ALL");
+
+  // Reset selections when modal opens
+  useEffect(() => {
+    if (open) {
+      setSelectedCountry("ALL");
+      setSelectedBusinessUnit("ALL");
+      setSelectedTable("ALL");
+      setDownloadScope("selected");
+      setIsComplete(false);
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  }, [open]);
 
   const handleDownload = async () => {
     setIsDownloading(true);
     setDownloadProgress(0);
+    
+    // Determine what to download
+    let downloadMessage = "";
+    if (downloadScope === "search") {
+      downloadMessage = "Filtered search results";
+    } else if (downloadScope === "all") {
+      downloadMessage = "All countries, business units, and tables";
+    } else if (downloadScope === "selected") {
+      const countryText = selectedCountry === "ALL" ? "All countries" : countries.find(c => c.value === selectedCountry)?.label;
+      const buText = selectedBusinessUnit === "ALL" ? "All business units" : businessUnits.find(bu => bu.value === selectedBusinessUnit)?.label;
+      const tableText = selectedTable === "ALL" ? "All tables" : tables.find(t => t.value === selectedTable)?.label;
+      
+      downloadMessage = `${countryText}, ${buText}, ${tableText}`;
+    }
     
     // Simulate download progress
     const interval = setInterval(() => {
@@ -56,7 +110,7 @@ export const DownloadConfigModal = ({
             setIsComplete(false);
             onOpenChange(false);
             toast.success("Configuration data downloaded successfully", {
-              description: `Downloaded as ${format.toUpperCase()} file`,
+              description: `${downloadMessage} - EXCEL file`,
             });
           }, 1500);
           return 100;
@@ -70,10 +124,13 @@ export const DownloadConfigModal = ({
     switch (downloadScope) {
       case "search":
         return "Download filtered results based on current search and column filters";
-      case "country":
-        return `Download all configuration data for ${country} (all business units)`;
-      case "full":
-        return `Download all data for ${country} - ${businessUnit}`;
+      case "selected":
+        const countryText = selectedCountry === "ALL" ? "All countries" : countries.find(c => c.value === selectedCountry)?.label;
+        const buText = selectedBusinessUnit === "ALL" ? "All business units" : businessUnits.find(bu => bu.value === selectedBusinessUnit)?.label;
+        const tableText = selectedTable === "ALL" ? "All tables" : tables.find(t => t.value === selectedTable)?.label;
+        return `Download configuration data for ${countryText}, ${buText}, and ${tableText}`;
+      case "all":
+        return "Download all configuration data for all countries, business units, and tables";
       default:
         return "";
     }
@@ -91,14 +148,14 @@ export const DownloadConfigModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="glass border-border sm:max-w-[500px]">
+      <DialogContent className="glass border-border sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground flex items-center gap-2">
             <Download className="w-5 h-5 text-primary" />
             Download Configuration Data
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Select the scope and format for your configuration download
+            Select the scope for your configuration download (Excel format)
           </DialogDescription>
         </DialogHeader>
 
@@ -131,13 +188,13 @@ export const DownloadConfigModal = ({
 
                 <div className="glass-hover rounded-lg p-4 border border-border">
                   <div className="flex items-start space-x-3">
-                    <RadioGroupItem value="country" id="country" />
+                    <RadioGroupItem value="selected" id="selected" />
                     <div className="flex-1">
-                      <Label htmlFor="country" className="text-sm font-medium text-foreground cursor-pointer">
-                        Region-Specific ({country})
+                      <Label htmlFor="selected" className="text-sm font-medium text-foreground cursor-pointer">
+                        Custom Selection
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        All business units in selected country
+                        Select specific countries and business units
                       </p>
                     </div>
                   </div>
@@ -145,13 +202,13 @@ export const DownloadConfigModal = ({
 
                 <div className="glass-hover rounded-lg p-4 border border-border">
                   <div className="flex items-start space-x-3">
-                    <RadioGroupItem value="full" id="full" />
+                    <RadioGroupItem value="all" id="all" />
                     <div className="flex-1">
-                      <Label htmlFor="full" className="text-sm font-medium text-foreground cursor-pointer">
-                        Complete Dataset ({country} - {businessUnit})
+                      <Label htmlFor="all" className="text-sm font-medium text-foreground cursor-pointer">
+                        All Data
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        All records for selected region and business unit
+                        All countries and business units
                       </p>
                     </div>
                   </div>
@@ -163,29 +220,70 @@ export const DownloadConfigModal = ({
               </div>
             </div>
 
-            {/* File Format */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-foreground">File Format</Label>
-              <Select value={format} onValueChange={(value: any) => setFormat(value)}>
-                <SelectTrigger className="glass border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="glass border-border">
-                  <SelectItem value="excel" className="hover:bg-card-hover">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-4 h-4 text-status-success" />
-                      Excel (.xlsx)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="csv" className="hover:bg-card-hover">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-status-info" />
-                      CSV (.csv)
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Country, Business Unit, and Table Selection */}
+            {downloadScope === "selected" && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Country Dropdown */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-primary" />
+                    Country
+                  </Label>
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger className="glass border-border">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border">
+                      {countries.map((c) => (
+                        <SelectItem key={c.value} value={c.value} className="hover:bg-card-hover">
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Business Unit Dropdown */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    Business Unit
+                  </Label>
+                  <Select value={selectedBusinessUnit} onValueChange={setSelectedBusinessUnit}>
+                    <SelectTrigger className="glass border-border">
+                      <SelectValue placeholder="Select business unit" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border">
+                      {businessUnits.map((bu) => (
+                        <SelectItem key={bu.value} value={bu.value} className="hover:bg-card-hover">
+                          {bu.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Table Dropdown */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Table className="w-4 h-4 text-primary" />
+                    Table
+                  </Label>
+                  <Select value={selectedTable} onValueChange={setSelectedTable}>
+                    <SelectTrigger className="glass border-border">
+                      <SelectValue placeholder="Select table" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border">
+                      {tables.map((t) => (
+                        <SelectItem key={t.value} value={t.value} className="hover:bg-card-hover">
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             {/* Download Progress */}
             {isDownloading && (

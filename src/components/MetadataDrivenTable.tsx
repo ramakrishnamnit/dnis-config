@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Edit2, Trash2, MoreHorizontal, Download, Upload, Plus, History, Loader2 } from "lucide-react";
+import { Edit2, Trash2, MoreHorizontal, Upload, Plus, History, Loader2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +27,7 @@ import { EntityMetadata, EntityRow, OCCConflict } from "@/types/metadata";
 import { MetadataApiService } from "@/services/mockMetadataApi";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { generateSimpleTemplate } from "@/utils/excelGenerator";
 
 interface MetadataDrivenTableProps {
   entityId: string;
@@ -136,6 +137,12 @@ export const MetadataDrivenTable = ({
     setEditingCell(null);
   };
 
+  const handleDownloadTemplate = () => {
+    if (metadata) {
+      generateSimpleTemplate(metadata, metadata.entityName);
+    }
+  };
+
   const formatCellValue = (value: any, dataType: string) => {
     if (value === null || value === undefined) return "-";
     
@@ -199,12 +206,14 @@ export const MetadataDrivenTable = ({
             <Upload className="w-4 h-4 mr-2" />
             Bulk Upload
           </Button>
-          {metadata.permissions.canDownload && (
-            <Button variant="outline" className="glass-hover border-border">
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            className="glass-hover border-border"
+            onClick={handleDownloadTemplate}
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Download Template
+          </Button>
           {onViewAudit && (
             <Button
               onClick={onViewAudit}
@@ -222,23 +231,37 @@ export const MetadataDrivenTable = ({
       <div className="glass rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/80">
               <TableRow className="border-border hover:bg-transparent">
-                {metadata.columns.map((column) => (
-                  <TableHead key={column.name} className="text-foreground font-semibold">
-                    <div className="flex items-center gap-2">
-                      {column.label}
-                      {column.required && <span className="text-destructive">*</span>}
-                      {column.editable && (
-                        <Badge variant="outline" className="text-xs border-primary/30">
-                          Edit
-                        </Badge>
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-                <TableHead className="text-foreground font-semibold">Version</TableHead>
-                <TableHead className="text-foreground font-semibold">Actions</TableHead>
+                {metadata.columns.map((column) => {
+                  // Identify primary key: first column that is non-editable and required
+                  const isPrimaryKey = !column.editable && column.required && 
+                    metadata.columns.findIndex(col => !col.editable && col.required) === 
+                    metadata.columns.findIndex(col => col.name === column.name);
+                  
+                  return (
+                    <TableHead 
+                      key={column.name} 
+                      className="font-bold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{column.label}</span>
+                        {column.required && <span className="text-destructive">*</span>}
+                        {column.editable && (
+                          <Badge variant="outline" className="text-xs border-primary/30">
+                            Edit
+                          </Badge>
+                        )}
+                      </div>
+                    </TableHead>
+                  );
+                })}
+                <TableHead className="font-bold">
+                  <span>Version</span>
+                </TableHead>
+                <TableHead className="font-bold">
+                  <span>Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

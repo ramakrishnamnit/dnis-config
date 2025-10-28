@@ -1,4 +1,4 @@
-import { Globe, Building2, Database } from "lucide-react";
+import { Globe, Building2, Database, Download } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface TableEntity {
   id: string;
@@ -24,6 +25,7 @@ interface RegionSelectorProps {
   tables: TableEntity[];
   selectedTableId?: string;
   onTableSelect: (tableId: string) => void;
+  onDownloadConfig: () => void;
 }
 
 const countries = [
@@ -49,13 +51,24 @@ export const RegionSelector = ({
   tables,
   selectedTableId,
   onTableSelect,
+  onDownloadConfig,
 }: RegionSelectorProps) => {
   return (
     <div className="glass rounded-xl p-6 border border-border hover-glow-red">
-      <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-        <Globe className="w-5 h-5 text-primary" />
-        Region & Configuration Selector
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Globe className="w-5 h-5 text-primary" />
+          Region & Configuration Selector
+        </h2>
+        <Button
+          onClick={onDownloadConfig}
+          variant="outline"
+          className="glass-hover border-primary/30 text-foreground hover:text-primary hover:glow-red"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download Config
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Country Selector */}

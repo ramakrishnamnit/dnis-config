@@ -1,4 +1,4 @@
-import { Plus, Upload, History, Edit, Eye, Trash2, MoreVertical, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Plus, Upload, History, Edit, Eye, Trash2, MoreVertical, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ interface RecordManagementProps {
   isLoading?: boolean;
   onAddRecord: () => void;
   onBulkUpload: () => void;
+  onDownloadTemplate?: () => void;
   onViewAudit: () => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -51,6 +52,7 @@ export const RecordManagement = ({
   isLoading = false,
   onAddRecord,
   onBulkUpload,
+  onDownloadTemplate,
   onViewAudit,
   onPageChange,
   onPageSizeChange,
@@ -74,7 +76,8 @@ export const RecordManagement = ({
     }, 500); // 500ms debounce
     
     return () => clearTimeout(timer);
-  }, [localFilters, onFilterChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFilters]); // Only trigger when localFilters change, not onFilterChange
   
   const handleLocalFilterChange = (columnKey: string, value: string) => {
     setLocalFilters(prev => ({
@@ -172,6 +175,17 @@ export const RecordManagement = ({
             Bulk Upload
           </Button>
 
+          {onDownloadTemplate && (
+            <Button
+              onClick={onDownloadTemplate}
+              variant="outline"
+              className="glass-hover border-border"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Template
+            </Button>
+          )}
+
           <Button
             onClick={onViewAudit}
             variant="outline"
@@ -195,14 +209,14 @@ export const RecordManagement = ({
               <label className="text-xs font-medium text-muted-foreground">
                 {column.label}
               </label>
-              <Input
+            <Input
                 placeholder={`Filter by ${column.label.toLowerCase()}...`}
                 value={localFilters[column.key] || ""}
                 onChange={(e) => handleLocalFilterChange(column.key, e.target.value)}
-                className="glass border-border focus:border-primary"
+              className="glass border-border focus:border-primary"
                 disabled={isLoading}
-              />
-            </div>
+            />
+          </div>
           ))}
         </div>
         {hasActiveFilters && (
@@ -282,48 +296,48 @@ export const RecordManagement = ({
                         )}
                       </TableCell>
                     ))}
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="glass-hover"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="glass border-border">
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="glass-hover"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="glass border-border">
                           <DropdownMenuItem 
                             className="hover:bg-card-hover text-foreground cursor-pointer"
                             onClick={() => handleViewRecord(record)}
                           >
-                            <Eye className="w-4 h-4 mr-2" />
+                          <Eye className="w-4 h-4 mr-2" />
                             View Details
-                          </DropdownMenuItem>
+                        </DropdownMenuItem>
                           {columns.some(col => col.isEditable) && (
                             <DropdownMenuItem 
                               className="hover:bg-card-hover text-foreground cursor-pointer"
                               onClick={() => handleEditRecord(record)}
                             >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
                           )}
                           <DropdownMenuItem className="hover:bg-card-hover text-foreground cursor-pointer">
-                            <History className="w-4 h-4 mr-2" />
-                            View History
-                          </DropdownMenuItem>
+                          <History className="w-4 h-4 mr-2" />
+                          View History
+                        </DropdownMenuItem>
                           {columns.some(col => col.isEditable) && (
                             <DropdownMenuItem className="hover:bg-destructive/10 text-destructive cursor-pointer">
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
                 ))
               )}
             </TableBody>
