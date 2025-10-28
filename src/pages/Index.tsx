@@ -6,6 +6,7 @@ import { RecordManagement } from "@/components/RecordManagement";
 import { AudioAssetManager } from "@/components/AudioAssetManager";
 import { AuditTrailViewer } from "@/components/AuditTrailViewer";
 import { DownloadConfigModal } from "@/components/DownloadConfigModal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Mock data
 const mockTables = [
@@ -112,46 +113,58 @@ const Index = () => {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="container mx-auto px-6 py-8 space-y-8">
-        {/* Region Selector */}
-        <RegionSelector
-          country={country}
-          businessUnit={businessUnit}
-          onCountryChange={setCountry}
-          onBusinessUnitChange={setBusinessUnit}
-        />
+      <main className="container mx-auto px-6 py-8">
+        <Tabs defaultValue="config" className="space-y-6">
+          <TabsList className="glass border border-border">
+            <TabsTrigger value="config">Config</TabsTrigger>
+            <TabsTrigger value="audio">Audio</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
+          </TabsList>
 
-        {/* Entity Table Browser */}
-        {country && businessUnit && (
-          <EntityTableBrowser
-            tables={filteredTables}
-            onTableSelect={setSelectedTableId}
-            selectedTableId={selectedTableId}
-          />
-        )}
-
-        {/* Record Management */}
-        {selectedTable && (
-          <div className="glass rounded-xl p-6 border border-border">
-            <RecordManagement
-              tableName={selectedTable.name}
-              records={mockRecords}
-              onAddRecord={() => {}}
-              onBulkUpload={() => {}}
-              onViewAudit={() => {}}
+          <TabsContent value="config" className="space-y-8">
+            {/* Region Selector */}
+            <RegionSelector
+              country={country}
+              businessUnit={businessUnit}
+              onCountryChange={setCountry}
+              onBusinessUnitChange={setBusinessUnit}
             />
-          </div>
-        )}
 
-        {/* Audio Asset Manager */}
-        <div className="glass rounded-xl p-6 border border-border">
-          <AudioAssetManager />
-        </div>
+            {/* Entity Table Browser */}
+            {country && businessUnit && (
+              <EntityTableBrowser
+                tables={filteredTables}
+                onTableSelect={setSelectedTableId}
+                selectedTableId={selectedTableId}
+              />
+            )}
 
-        {/* Audit Trail */}
-        <div className="glass rounded-xl p-6 border border-border">
-          <AuditTrailViewer />
-        </div>
+            {/* Record Management */}
+            {selectedTable && (
+              <div className="glass rounded-xl p-6 border border-border">
+                <RecordManagement
+                  tableName={selectedTable.name}
+                  records={mockRecords}
+                  onAddRecord={() => {}}
+                  onBulkUpload={() => {}}
+                  onViewAudit={() => {}}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="audio">
+            <div className="glass rounded-xl p-6 border border-border">
+              <AudioAssetManager />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <div className="glass rounded-xl p-6 border border-border">
+              <AuditTrailViewer />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Download Config Modal */}

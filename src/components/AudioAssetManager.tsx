@@ -3,6 +3,7 @@ import { Upload, Music, Download, Trash2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AudioAsset {
   id: string;
@@ -15,6 +16,8 @@ interface AudioAsset {
 
 export const AudioAssetManager = () => {
   const [isDragging, setIsDragging] = useState(false);
+  const currentUser = "John Doe"; // Mock current user
+  
   const [audioAssets] = useState<AudioAsset[]>([
     {
       id: "1",
@@ -32,7 +35,18 @@ export const AudioAssetManager = () => {
       uploadDate: "2025-01-14",
       size: "5.1 MB",
     },
+    {
+      id: "3",
+      name: "queue_music_jazz.mp3",
+      type: "audio/mpeg",
+      uploader: "John Doe",
+      uploadDate: "2025-01-13",
+      size: "3.8 MB",
+    },
   ]);
+
+  const myUploads = audioAssets.filter(asset => asset.uploader === currentUser);
+  const allUploads = audioAssets;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -48,6 +62,59 @@ export const AudioAssetManager = () => {
     setIsDragging(false);
     toast.success("Audio file uploaded successfully");
   };
+
+  const renderAudioList = (assets: AudioAsset[]) => (
+    <div className="grid grid-cols-1 gap-4">
+      {assets.map((asset) => (
+        <div
+          key={asset.id}
+          className="glass-hover rounded-xl p-5 border border-border group"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="w-12 h-12 glass rounded-lg flex items-center justify-center flex-shrink-0">
+                <Music className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-foreground truncate">{asset.name}</h4>
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {asset.uploader}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {asset.uploadDate}
+                  </span>
+                  <Badge variant="outline" className="border-muted-foreground/30">
+                    {asset.size}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="glass-hover border-border opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => toast.success("Audio downloaded")}
+              >
+                <Download className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="glass-hover border-destructive/30 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => toast.success("Audio deleted")}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -90,62 +157,21 @@ export const AudioAssetManager = () => {
         </div>
       </div>
 
-      {/* Audio Files Grid */}
-      <div className="grid grid-cols-1 gap-4">
-        {audioAssets.map((asset) => (
-          <div
-            key={asset.id}
-            className="glass-hover rounded-xl p-5 border border-border group"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                {/* Waveform Visual */}
-                <div className="w-12 h-12 glass rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Music className="w-6 h-6 text-primary" />
-                </div>
+      {/* Audio Files Tabs */}
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList className="glass border border-border/50">
+          <TabsTrigger value="my">My Uploads ({myUploads.length})</TabsTrigger>
+          <TabsTrigger value="all">All Uploads ({allUploads.length})</TabsTrigger>
+        </TabsList>
 
-                {/* File Info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-foreground truncate">{asset.name}</h4>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {asset.uploader}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {asset.uploadDate}
-                    </span>
-                    <Badge variant="outline" className="border-muted-foreground/30">
-                      {asset.size}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+        <TabsContent value="my">
+          {renderAudioList(myUploads)}
+        </TabsContent>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="glass-hover border-border opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => toast.success("Audio downloaded")}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="glass-hover border-destructive/30 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => toast.success("Audio deleted")}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+        <TabsContent value="all">
+          {renderAudioList(allUploads)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

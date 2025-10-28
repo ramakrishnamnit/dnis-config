@@ -2,6 +2,7 @@ import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, Chevro
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AuditEvent {
   id: string;
@@ -93,6 +94,10 @@ const getActionColor = (action: string) => {
 
 export const AuditTrailViewer = () => {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const currentUser = "john.doe@hsbc.com"; // Mock current user
+  
+  const myAuditEvents = mockAuditEvents.filter(event => event.userId === currentUser);
+  const allAuditEvents = mockAuditEvents;
 
   const toggleEvent = (eventId: string) => {
     const newExpanded = new Set(expandedEvents);
@@ -103,6 +108,77 @@ export const AuditTrailViewer = () => {
     }
     setExpandedEvents(newExpanded);
   };
+
+  const renderAuditTimeline = (events: AuditEvent[]) => (
+    <div className="relative space-y-4">
+      <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
+      {events.map((event, index) => {
+        const isExpanded = expandedEvents.has(event.id);
+        const hasChanges = event.changes !== undefined;
+
+        return (
+          <div key={event.id} className="relative pl-16 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+            <div className={`absolute left-4 w-5 h-5 rounded-full glass border-2 ${getActionColor(event.action)} flex items-center justify-center`}>
+              {getActionIcon(event.action)}
+            </div>
+            <div className="glass-hover rounded-xl p-5 border border-border">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className={getActionColor(event.action)}>
+                      {event.action}
+                    </Badge>
+                    <span className="text-sm font-medium text-foreground">{event.tableName}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{event.reason}</p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {event.userId}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {event.timestamp}
+                    </span>
+                  </div>
+                </div>
+                {hasChanges && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => toggleEvent(event.id)}
+                    className="glass-hover"
+                  >
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                )}
+              </div>
+              {hasChanges && isExpanded && (
+                <div className="mt-4 space-y-3 pt-4 border-t border-border animate-slide-up">
+                  {event.changes?.before && (
+                    <div className="glass rounded-lg p-3 border border-destructive/20">
+                      <p className="text-xs font-medium text-destructive mb-2">Before:</p>
+                      <pre className="text-xs text-muted-foreground overflow-x-auto">
+                        {JSON.stringify(event.changes.before, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  {event.changes?.after && (
+                    <div className="glass rounded-lg p-3 border border-status-success/20">
+                      <p className="text-xs font-medium text-status-success mb-2">After:</p>
+                      <pre className="text-xs text-muted-foreground overflow-x-auto">
+                        {JSON.stringify(event.changes.after, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -116,89 +192,20 @@ export const AuditTrailViewer = () => {
         </p>
       </div>
 
-      {/* Timeline */}
-      <div className="relative space-y-4">
-        {/* Timeline Line */}
-        <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList className="glass border border-border/50">
+          <TabsTrigger value="my">My Audit ({myAuditEvents.length})</TabsTrigger>
+          <TabsTrigger value="all">All Audit ({allAuditEvents.length})</TabsTrigger>
+        </TabsList>
 
-        {mockAuditEvents.map((event, index) => {
-          const isExpanded = expandedEvents.has(event.id);
-          const hasChanges = event.changes !== undefined;
+        <TabsContent value="my">
+          {renderAuditTimeline(myAuditEvents)}
+        </TabsContent>
 
-          return (
-            <div key={event.id} className="relative pl-16 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-              {/* Timeline Dot */}
-              <div className={`absolute left-4 w-5 h-5 rounded-full glass border-2 ${getActionColor(event.action)} flex items-center justify-center`}>
-                {getActionIcon(event.action)}
-              </div>
-
-              {/* Event Card */}
-              <div className="glass-hover rounded-xl p-5 border border-border">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className={getActionColor(event.action)}>
-                        {event.action}
-                      </Badge>
-                      <span className="text-sm font-medium text-foreground">{event.tableName}</span>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground">{event.reason}</p>
-
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {event.userId}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {event.timestamp}
-                      </span>
-                    </div>
-                  </div>
-
-                  {hasChanges && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => toggleEvent(event.id)}
-                      className="glass-hover"
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-
-                {/* JSON Diff Panel */}
-                {hasChanges && isExpanded && (
-                  <div className="mt-4 space-y-3 pt-4 border-t border-border animate-slide-up">
-                    {event.changes?.before && (
-                      <div className="glass rounded-lg p-3 border border-destructive/20">
-                        <p className="text-xs font-medium text-destructive mb-2">Before:</p>
-                        <pre className="text-xs text-muted-foreground overflow-x-auto">
-                          {JSON.stringify(event.changes.before, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                    {event.changes?.after && (
-                      <div className="glass rounded-lg p-3 border border-status-success/20">
-                        <p className="text-xs font-medium text-status-success mb-2">After:</p>
-                        <pre className="text-xs text-muted-foreground overflow-x-auto">
-                          {JSON.stringify(event.changes.after, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+        <TabsContent value="all">
+          {renderAuditTimeline(allAuditEvents)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
