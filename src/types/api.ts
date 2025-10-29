@@ -18,6 +18,7 @@ export interface ColumnMetadataResponse {
   maxLength?: number;
   enumValues?: string[];
   defaultValue?: any;
+  isFilterable?: boolean;
 }
 
 export interface EntityPermissionsResponse {

@@ -114,7 +114,7 @@ export const OCCConflictModal = ({
           </Button>
           <Button
             onClick={onRefresh}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground glow-red"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh Data

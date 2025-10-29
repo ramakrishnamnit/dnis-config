@@ -1,4 +1,4 @@
-import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeRangeFilter } from "./TimeRangeFilter";
 
 interface AuditEvent {
   id: string;
@@ -108,17 +109,26 @@ export const AuditTrailViewer = () => {
   const [viewMode, setViewMode] = useState<"my" | "all">("all");
   
   // Filter states
+  const [showFilters, setShowFilters] = useState(false);
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableNameFilter, setTableNameFilter] = useState<string>("");
   const [userIdFilter, setUserIdFilter] = useState<string>("");
   const [reasonFilter, setReasonFilter] = useState<string>("");
   
+  // Time range filter states
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  
+  // Sort states
+  const [sortBy, setSortBy] = useState<string>("timestamp");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
-  // Apply filters
-  const applyFilters = (events: AuditEvent[]) => {
+  // Apply filters and sorting
+  const applyFiltersAndSort = (events: AuditEvent[]) => {
     let filtered = events;
     
     // Apply view mode filter first
@@ -127,16 +137,46 @@ export const AuditTrailViewer = () => {
     }
     
     // Apply other filters
-    return filtered.filter(event => {
+    filtered = filtered.filter(event => {
       if (actionFilter !== "all" && event.action !== actionFilter) return false;
       if (tableNameFilter && !event.tableName.toLowerCase().includes(tableNameFilter.toLowerCase())) return false;
       if (userIdFilter && !event.userId.toLowerCase().includes(userIdFilter.toLowerCase())) return false;
       if (reasonFilter && !event.reason.toLowerCase().includes(reasonFilter.toLowerCase())) return false;
+      
+      // Time range filtering
+      if (fromDate || toDate) {
+        const eventDate = new Date(event.timestamp);
+        if (fromDate && eventDate < new Date(fromDate)) return false;
+        if (toDate && eventDate > new Date(toDate)) return false;
+      }
+      
       return true;
+    });
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let aValue: any = a[sortBy as keyof AuditEvent];
+      let bValue: any = b[sortBy as keyof AuditEvent];
+
+      // Handle timestamp sorting
+      if (sortBy === "timestamp") {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+
+      // String comparison (case-insensitive)
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
     });
   };
 
-  const filteredEvents = applyFilters(mockAuditEvents);
+  const filteredEvents = applyFiltersAndSort(mockAuditEvents);
   
   // Pagination logic
   const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
@@ -155,7 +195,7 @@ export const AuditTrailViewer = () => {
   };
 
   const renderAuditTimeline = (events: AuditEvent[]) => (
-    <div className="relative space-y-4">
+    <div className="relative space-y-3">
       <div className="absolute left-6 top-0 bottom-0 w-px bg-border" />
       {events.map((event, index) => {
         const isExpanded = expandedEvents.has(event.id);
@@ -166,20 +206,20 @@ export const AuditTrailViewer = () => {
             <div className={`absolute left-4 w-5 h-5 rounded-full glass border-2 ${getActionColor(event.action)} flex items-center justify-center`}>
               {getActionIcon(event.action)}
             </div>
-            <div className="glass-hover rounded-xl p-5 border border-border">
+            <div className="glass-hover rounded-xl p-3 border border-border">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className={getActionColor(event.action)}>
                       {event.action}
                     </Badge>
                     <span className="text-sm font-medium text-foreground">{event.tableName}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{event.reason}</p>
+                  <p className="text-sm text-muted-foreground">{event.userId}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      {event.userId}
+                      {event.reason}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -199,18 +239,18 @@ export const AuditTrailViewer = () => {
                 )}
               </div>
               {hasChanges && isExpanded && (
-                <div className="mt-4 space-y-3 pt-4 border-t border-border animate-slide-up">
+                <div className="mt-3 space-y-2 pt-3 border-t border-border animate-slide-up">
                   {event.changes?.before && (
-                    <div className="glass rounded-lg p-3 border border-destructive/20">
-                      <p className="text-xs font-medium text-destructive mb-2">Before:</p>
+                    <div className="glass rounded-lg p-2 border border-destructive/20">
+                      <p className="text-xs font-medium text-destructive mb-1">Before:</p>
                       <pre className="text-xs text-muted-foreground overflow-x-auto">
                         {JSON.stringify(event.changes.before, null, 2)}
                       </pre>
                     </div>
                   )}
                   {event.changes?.after && (
-                    <div className="glass rounded-lg p-3 border border-status-success/20">
-                      <p className="text-xs font-medium text-status-success mb-2">After:</p>
+                    <div className="glass rounded-lg p-2 border border-status-success/20">
+                      <p className="text-xs font-medium text-status-success mb-1">After:</p>
                       <pre className="text-xs text-muted-foreground overflow-x-auto">
                         {JSON.stringify(event.changes.after, null, 2)}
                       </pre>
@@ -271,68 +311,141 @@ export const AuditTrailViewer = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters - Compact Collapsible Box */}
       <div className="flex-shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Action Type</label>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="glass border-border focus:border-primary">
-                <SelectValue placeholder="All Actions" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border">
-                <SelectItem value="all">All Actions</SelectItem>
-                <SelectItem value="UPDATE">Update</SelectItem>
-                <SelectItem value="INSERT">Insert</SelectItem>
-                <SelectItem value="DELETE">Delete</SelectItem>
-                <SelectItem value="DOWNLOAD">Download</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="glass rounded-lg border border-border">
+          {/* Filter Header - Always Visible */}
+          <div className="flex items-center justify-between p-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 hover:text-primary transition-colors"
+            >
+              <Filter className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Filters</span>
+              {showFilters ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+              {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter || fromDate || toDate) && (
+                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/30">
+                  Active
+                </Badge>
+              )}
+            </button>
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-8 w-[140px] glass border-border focus:border-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border">
+                    <SelectItem value="timestamp">Timestamp</SelectItem>
+                    <SelectItem value="action">Action</SelectItem>
+                    <SelectItem value="tableName">Table Name</SelectItem>
+                    <SelectItem value="userId">User ID</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                  className="h-8 w-8 p-0 hover:bg-card-hover"
+                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                >
+                  {sortDirection === "asc" ? (
+                    <ChevronUp className="w-4 h-4 text-primary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-primary" />
+                  )}
+                </Button>
+              </div>
+              
+              <div className="w-px h-6 bg-border" />
+              
+              <TimeRangeFilter
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={setFromDate}
+                onToDateChange={setToDate}
+                onClear={() => {
+                  setFromDate("");
+                  setToDate("");
+                }}
+              />
+              {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter || fromDate || toDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setActionFilter("all");
+                    setTableNameFilter("");
+                    setUserIdFilter("");
+                    setReasonFilter("");
+                    setFromDate("");
+                    setToDate("");
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Table Name</label>
-            <Input
-              placeholder="Filter by table..."
-              value={tableNameFilter}
-              onChange={(e) => setTableNameFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">User ID</label>
-            <Input
-              placeholder="Filter by user..."
-              value={userIdFilter}
-              onChange={(e) => setUserIdFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Reason</label>
-            <Input
-              placeholder="Filter by reason..."
-              value={reasonFilter}
-              onChange={(e) => setReasonFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
+
+          {/* Filter Content - Collapsible */}
+          {showFilters && (
+            <div className="px-3 pb-3 pt-0 border-t border-border/50 animate-slide-down">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Action Type</label>
+                  <Select value={actionFilter} onValueChange={setActionFilter}>
+                    <SelectTrigger className="h-9 glass border-border focus:border-primary">
+                      <SelectValue placeholder="All Actions" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border">
+                      <SelectItem value="all">All Actions</SelectItem>
+                      <SelectItem value="UPDATE">Update</SelectItem>
+                      <SelectItem value="INSERT">Insert</SelectItem>
+                      <SelectItem value="DELETE">Delete</SelectItem>
+                      <SelectItem value="DOWNLOAD">Download</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Table Name</label>
+                  <Input
+                    placeholder="Filter by table..."
+                    value={tableNameFilter}
+                    onChange={(e) => setTableNameFilter(e.target.value)}
+                    className="h-9 glass border-border focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">User ID</label>
+                  <Input
+                    placeholder="Filter by user..."
+                    value={userIdFilter}
+                    onChange={(e) => setUserIdFilter(e.target.value)}
+                    className="h-9 glass border-border focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">User Name</label>
+                  <Input
+                    placeholder="Filter by user name..."
+                    value={reasonFilter}
+                    onChange={(e) => setReasonFilter(e.target.value)}
+                    className="h-9 glass border-border focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        {(actionFilter !== "all" || tableNameFilter || userIdFilter || reasonFilter) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setActionFilter("all");
-              setTableNameFilter("");
-              setUserIdFilter("");
-              setReasonFilter("");
-              setCurrentPage(1);
-            }}
-            className="mt-4 glass-hover border-primary/30 text-foreground hover:text-primary"
-          >
-            Clear Filters
-          </Button>
-        )}
       </div>
 
       {/* Audit Trail Content */}

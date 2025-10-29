@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { EntityMetadata } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
@@ -261,17 +262,15 @@ export const AddRowModal = ({
               {column.required && <span className="text-destructive ml-1">*</span>}
               <Badge variant="outline" className="ml-2 text-xs">DATE</Badge>
             </Label>
-            <Input
-              id={column.name}
-              type="date"
-              value={formData[column.name] || ""}
-              onChange={(e) => handleFieldChange(column.name, e.target.value)}
-              onBlur={() => handleBlur(column.name)}
-              className={cn(
-                "glass border-border focus:border-primary focus:glow-red",
-                showError && "border-destructive"
-              )}
+            <DatePicker
+              date={formData[column.name]}
+              onDateChange={(date) => {
+                handleFieldChange(column.name, date ? date.toISOString() : "");
+                handleBlur(column.name);
+              }}
               disabled={isLoading}
+              className={cn(showError && "border-destructive")}
+              placeholder={`Select ${column.label}`}
             />
             {showError && <p className="text-xs text-destructive">{fieldError}</p>}
           </div>
@@ -390,7 +389,7 @@ export const AddRowModal = ({
           <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="glass-hover bg-primary hover:bg-primary/90 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (
               <>

@@ -17,12 +17,14 @@ const mockMetadata: Record<string, EntityMetadata> = {
         editable: false,
         required: true,
         maxLength: 50,
+        isFilterable: true,
       },
       {
         name: "BypassAg",
         label: "Bypass Agent",
         dataType: "BOOLEAN",
         editable: true,
+        isFilterable: true,
       },
       {
         name: "InterceptTreatmentType",
@@ -30,6 +32,7 @@ const mockMetadata: Record<string, EntityMetadata> = {
         dataType: "ENUM",
         editable: true,
         enumValues: ["BLOCK", "REDIRECT", "ALLOW", "LOG"],
+        isFilterable: true,
       },
       {
         name: "MaxQueueTime",
@@ -37,18 +40,21 @@ const mockMetadata: Record<string, EntityMetadata> = {
         dataType: "NUMBER",
         editable: true,
         required: true,
+        isFilterable: true,
       },
       {
         name: "Priority",
         label: "Priority Level",
         dataType: "NUMBER",
         editable: true,
+        isFilterable: true,
       },
       {
         name: "IsActive",
         label: "Active",
         dataType: "BOOLEAN",
         editable: true,
+        isFilterable: true,
       },
     ],
     permissions: {
@@ -70,6 +76,7 @@ const mockMetadata: Record<string, EntityMetadata> = {
         editable: false,
         required: true,
         maxLength: 100,
+        isFilterable: true,
       },
       {
         name: "value",
@@ -78,6 +85,7 @@ const mockMetadata: Record<string, EntityMetadata> = {
         editable: true,
         required: true,
         maxLength: 500,
+        isFilterable: true,
       },
       {
         name: "description",
@@ -85,12 +93,14 @@ const mockMetadata: Record<string, EntityMetadata> = {
         dataType: "STRING",
         editable: true,
         maxLength: 1000,
+        isFilterable: true,
       },
       {
         name: "isEnabled",
         label: "Enabled",
         dataType: "BOOLEAN",
         editable: true,
+        isFilterable: true,
       },
     ],
     permissions: {
@@ -169,7 +179,9 @@ export class MetadataApiService {
     country: string,
     businessUnit: string,
     page: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
+    filters?: Record<string, string>,
+    globalSearch?: string
   ): Promise<EntityDataResponse> {
     await delay(500);
     
@@ -178,15 +190,78 @@ export class MetadataApiService {
       throw new Error(`Entity data not found for ${entityId}`);
     }
     
+    let filteredRows = [...data.rows];
+    
+    // Apply global search
+    if (globalSearch && globalSearch.trim()) {
+      const searchLower = globalSearch.toLowerCase();
+      filteredRows = filteredRows.filter(row => {
+        return Object.values(row).some(value => 
+          String(value).toLowerCase().includes(searchLower)
+        );
+      });
+    }
+    
+    // Apply column filters
+    if (filters) {
+      Object.entries(filters).forEach(([columnName, filterValue]) => {
+        if (!filterValue) return;
+        
+        // Handle date range filters
+        if (columnName === 'fromDate' && filterValue) {
+          const fromDate = new Date(filterValue);
+          filteredRows = filteredRows.filter(row => {
+            const rowDate = new Date(row.lastUpdatedOn);
+            return rowDate >= fromDate;
+          });
+          return;
+        }
+        
+        if (columnName === 'toDate' && filterValue) {
+          const toDate = new Date(filterValue);
+          toDate.setHours(23, 59, 59, 999); // End of day
+          filteredRows = filteredRows.filter(row => {
+            const rowDate = new Date(row.lastUpdatedOn);
+            return rowDate <= toDate;
+          });
+          return;
+        }
+        
+        // Handle regular column filters
+        filteredRows = filteredRows.filter(row => {
+          const cellValue = row[columnName];
+          
+          if (cellValue === null || cellValue === undefined) {
+            return false;
+          }
+          
+          // For boolean values
+          if (typeof cellValue === 'boolean') {
+            return String(cellValue) === filterValue;
+          }
+          
+          // For numbers - exact match or contains
+          if (typeof cellValue === 'number') {
+            return String(cellValue).includes(filterValue);
+          }
+          
+          // For strings - case insensitive contains
+          return String(cellValue).toLowerCase().includes(filterValue.toLowerCase());
+        });
+      });
+    }
+    
+    const totalCount = filteredRows.length;
+    
     // Simulate pagination
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const paginatedRows = data.rows.slice(startIndex, endIndex);
+    const paginatedRows = filteredRows.slice(startIndex, endIndex);
     
     return {
-      ...data,
       page,
       pageSize,
+      totalCount,
       rows: paginatedRows,
     };
   }

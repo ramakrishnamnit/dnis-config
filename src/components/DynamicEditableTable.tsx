@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { Edit2, Save, X, AlertCircle, Loader2, Check, Eye, Trash2, MoreVertical } from "lucide-react";
+import { Edit2, Save, X, AlertCircle, Loader2, Check, Trash2, MoreVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { EntityMetadata } from "@/types/metadata";
 import type { EntityRowResponse } from "@/types/api";
 import type { ValidationResult } from "@/types/editState";
@@ -40,6 +41,8 @@ interface DynamicEditableTableProps {
   onFilterChange?: (columnName: string, value: string) => void;
 }
 
+type SortDirection = "asc" | "desc" | null;
+
 export const DynamicEditableTable = ({
   metadata,
   rows,
@@ -55,6 +58,8 @@ export const DynamicEditableTable = ({
 }: DynamicEditableTableProps) => {
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnName: string } | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   // Start editing a cell
   const handleStartEdit = useCallback((rowId: string, columnName: string, currentValue: any) => {
@@ -148,13 +153,10 @@ export const DynamicEditableTable = ({
 
       case "DATE":
         return (
-          <Input
-            type="date"
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={onKeyDown}
-            className="h-8 glass border-primary focus:ring-primary focus:glow-red"
-            autoFocus
+          <DatePicker
+            date={value}
+            onDateChange={(date) => onChange(date ? date.toISOString() : "")}
+            className="h-8 border-primary focus:ring-primary focus:glow-red"
           />
         );
 
@@ -172,6 +174,52 @@ export const DynamicEditableTable = ({
         );
     }
   }, []);
+
+  // Handle column sorting
+  const handleSort = useCallback((columnName: string) => {
+    if (sortColumn === columnName) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortDirection(null);
+        setSortColumn(null);
+      }
+    } else {
+      setSortColumn(columnName);
+      setSortDirection("asc");
+    }
+  }, [sortColumn, sortDirection]);
+
+  // Sort rows based on current sort state
+  const sortedRows = useMemo(() => {
+    if (!sortColumn || !sortDirection) {
+      return rows;
+    }
+
+    return [...rows].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === "asc" ? 1 : -1;
+      if (bValue == null) return sortDirection === "asc" ? -1 : 1;
+
+      // Compare based on type
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      // String comparison (case-insensitive)
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (aStr < bStr) return sortDirection === "asc" ? -1 : 1;
+      if (aStr > bStr) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [rows, sortColumn, sortDirection]);
 
   // Render table cell content
   const renderCellContent = useCallback((row: EntityRowResponse, column: any) => {
@@ -255,17 +303,31 @@ export const DynamicEditableTable = ({
                   metadata.columns.findIndex(col => !col.editable && col.required) === 
                   metadata.columns.findIndex(col => col.name === column.name);
                 
+                const isSorted = sortColumn === column.name;
+                
                 return (
                   <TableHead 
                     key={column.name} 
                     className={cn(
-                      "font-bold",
+                      "font-bold cursor-pointer hover:bg-primary/20 transition-colors",
                       !isPrimaryKey && "bg-primary/10 border-x border-primary/20"
                     )}
+                    onClick={() => handleSort(column.name)}
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-foreground">{column.label}</span>
                       {column.required && <span className="text-destructive">*</span>}
+                      <div className="ml-auto">
+                        {isSorted ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="w-4 h-4 text-primary" />
+                          ) : (
+                            <ArrowDown className="w-4 h-4 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </div>
                     </div>
                   </TableHead>
                 );
@@ -286,7 +348,7 @@ export const DynamicEditableTable = ({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => {
+              sortedRows.map((row) => {
                 const rowHasChanges = hasRowChanges(row.id);
                 const editState = pendingEdits.get(row.id);
                 const validation = rowHasChanges ? validateRow(row.id, row) : { valid: true, errors: [] };
@@ -335,9 +397,9 @@ export const DynamicEditableTable = ({
                                     onClick={() => onRowUpdate(row.id)}
                                     disabled={!validation.valid || editState?.status === "saving"}
                                     className={cn(
-                                      "h-7 px-2 text-xs",
+                                      "h-7 px-2 text-xs transition-all duration-300",
                                       validation.valid
-                                        ? "glass-hover bg-primary hover:bg-primary/90 text-white"
+                                        ? "shadow-md hover:shadow-lg hover:glow-subtle hover:-translate-y-0.5 bg-primary hover:bg-primary/90 text-primary-foreground"
                                         : "glass-hover border-destructive text-destructive"
                                     )}
                                   >
@@ -366,35 +428,25 @@ export const DynamicEditableTable = ({
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="glass-hover h-7 w-7 p-0"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass border-border">
-                            <DropdownMenuItem className="cursor-pointer hover:bg-card-hover">
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            {metadata.permissions.canEdit && (
-                              <DropdownMenuItem className="cursor-pointer hover:bg-card-hover">
-                                <Edit2 className="w-4 h-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            )}
-                            {metadata.permissions.canDelete && (
+                        {metadata.permissions.canDelete && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="glass-hover h-7 w-7 p-0"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass border-border">
                               <DropdownMenuItem className="cursor-pointer hover:bg-destructive/10 text-destructive">
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

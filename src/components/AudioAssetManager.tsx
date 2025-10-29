@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Music, Download, Trash2, User, Calendar, Filter, Hash, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, Music, Download, Trash2, User, Calendar, Filter, Hash, Play, Pause, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeRangeFilter } from "./TimeRangeFilter";
 
 interface AudioAsset {
   id: string;
@@ -128,29 +129,81 @@ export const AudioAssetManager = () => {
   ]);
 
   // Filter states
+  const [showFilters, setShowFilters] = useState(false);
   const [nameFilter, setNameFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [uploaderFilter, setUploaderFilter] = useState<string>("");
-  const [dateFilter, setDateFilter] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+
+  // Sort states
+  const [sortBy, setSortBy] = useState<string>("uploadDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Pagination states
   const [myUploadsPage, setMyUploadsPage] = useState(1);
   const [allUploadsPage, setAllUploadsPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Apply filters
-  const applyFilters = (assets: AudioAsset[]) => {
-    return assets.filter(asset => {
+  // Apply filters and sorting
+  const applyFiltersAndSort = (assets: AudioAsset[]) => {
+    // First apply filters
+    let filtered = assets.filter(asset => {
       if (nameFilter && !asset.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       if (typeFilter !== "all" && asset.type !== typeFilter) return false;
       if (uploaderFilter && !asset.uploader.toLowerCase().includes(uploaderFilter.toLowerCase())) return false;
-      if (dateFilter && !asset.uploadDate.includes(dateFilter)) return false;
+      
+      // Date range filtering
+      if (fromDate || toDate) {
+        const assetDate = new Date(asset.uploadDate);
+        if (fromDate && assetDate < new Date(fromDate)) return false;
+        if (toDate && assetDate > new Date(toDate)) return false;
+      }
+      
       return true;
+    });
+
+    // Then apply sorting
+    return filtered.sort((a, b) => {
+      let aValue: any = a[sortBy as keyof AudioAsset];
+      let bValue: any = b[sortBy as keyof AudioAsset];
+
+      // Handle date sorting
+      if (sortBy === "uploadDate") {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+      
+      // Handle size sorting (convert to bytes)
+      if (sortBy === "size") {
+        const parseSize = (size: string) => {
+          const match = size.match(/^([\d.]+)\s*(MB|KB|GB)$/i);
+          if (!match) return 0;
+          const value = parseFloat(match[1]);
+          const unit = match[2].toUpperCase();
+          if (unit === "GB") return value * 1024 * 1024 * 1024;
+          if (unit === "MB") return value * 1024 * 1024;
+          if (unit === "KB") return value * 1024;
+          return value;
+        };
+        aValue = parseSize(aValue);
+        bValue = parseSize(bValue);
+      }
+
+      // String comparison (case-insensitive)
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
     });
   };
 
-  const myUploads = applyFilters(audioAssets.filter(asset => asset.uploader === currentUser));
-  const allUploads = applyFilters(audioAssets);
+  const myUploads = applyFiltersAndSort(audioAssets.filter(asset => asset.uploader === currentUser));
+  const allUploads = applyFiltersAndSort(audioAssets);
 
   // Pagination logic
   const paginateAssets = (assets: AudioAsset[], page: number) => {
@@ -354,70 +407,129 @@ export const AudioAssetManager = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="glass rounded-xl p-4 border border-border flex-shrink-0">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Filters</h3>
+      {/* Filters - Collapsible */}
+      <div className="flex-shrink-0">
+        <div className="glass rounded-lg border border-border">
+          {/* Filter Header - Always Visible */}
+          <div className="flex items-center justify-between p-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 hover:text-primary transition-colors"
+            >
+              <Filter className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Filters</span>
+              {showFilters ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+              {(nameFilter || typeFilter !== "all" || uploaderFilter || fromDate || toDate) && (
+                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/30">
+                  Active
+                </Badge>
+              )}
+            </button>
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-8 w-[140px] glass border-border focus:border-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border">
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="uploadDate">Upload Date</SelectItem>
+                    <SelectItem value="uploader">Uploader</SelectItem>
+                    <SelectItem value="size">File Size</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+                  className="h-8 w-8 p-0 hover:bg-card-hover"
+                  title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                >
+                  {sortDirection === "asc" ? (
+                    <ChevronUp className="w-4 h-4 text-primary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-primary" />
+                  )}
+                </Button>
+              </div>
+              
+              <div className="w-px h-6 bg-border" />
+              
+              <TimeRangeFilter
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={setFromDate}
+                onToDateChange={setToDate}
+                onClear={() => {
+                  setFromDate("");
+                  setToDate("");
+                }}
+              />
+              {(nameFilter || typeFilter !== "all" || uploaderFilter || fromDate || toDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setNameFilter("");
+                    setTypeFilter("all");
+                    setUploaderFilter("");
+                    setFromDate("");
+                    setToDate("");
+                  }}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Content - Collapsible */}
+          {showFilters && (
+            <div className="px-3 pb-3 pt-0 border-t border-border/50 animate-slide-down">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">File Name</label>
+                  <Input
+                    placeholder="Filter by name..."
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                    className="h-9 glass border-border focus:border-primary"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">File Type</label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="h-9 glass border-border focus:border-primary">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border">
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="audio/mpeg">MP3</SelectItem>
+                      <SelectItem value="audio/wav">WAV</SelectItem>
+                      <SelectItem value="audio/m4a">M4A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Uploader</label>
+                  <Input
+                    placeholder="Filter by uploader..."
+                    value={uploaderFilter}
+                    onChange={(e) => setUploaderFilter(e.target.value)}
+                    className="h-9 glass border-border focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">File Name</label>
-            <Input
-              placeholder="Filter by name..."
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">File Type</label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="glass border-border focus:border-primary">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="audio/mpeg">MP3</SelectItem>
-                <SelectItem value="audio/wav">WAV</SelectItem>
-                <SelectItem value="audio/m4a">M4A</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Uploader</label>
-            <Input
-              placeholder="Filter by uploader..."
-              value={uploaderFilter}
-              onChange={(e) => setUploaderFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Upload Date</label>
-            <Input
-              placeholder="Filter by date..."
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="glass border-border focus:border-primary"
-            />
-          </div>
-        </div>
-        {(nameFilter || typeFilter !== "all" || uploaderFilter || dateFilter) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setNameFilter("");
-              setTypeFilter("all");
-              setUploaderFilter("");
-              setDateFilter("");
-            }}
-            className="mt-4 glass-hover border-primary/30 text-foreground hover:text-primary"
-          >
-            Clear Filters
-          </Button>
-        )}
       </div>
 
       {/* Audio Files */}

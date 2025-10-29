@@ -27,7 +27,7 @@ export const Header = ({ theme, onThemeChange }: HeaderProps) => {
                 <Shield className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Configuration Data Management</h1>
+                <h1 className="text-xl font-semibold text-foreground">DNIS Config Manager</h1>
                 <p className="text-xs text-muted-foreground">HSBC Enterprise Portal</p>
               </div>
             </Link>

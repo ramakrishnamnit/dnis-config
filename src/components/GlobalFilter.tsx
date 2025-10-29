@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, X, Search, Calendar, SlidersHorizontal } from "lucide-react";
+import { Filter, X, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { EntityMetadata } from "@/types/metadata";
 
 interface GlobalFilterProps {
@@ -166,16 +167,12 @@ export const GlobalFilter = ({
                       </SelectContent>
                     </Select>
                   ) : column.dataType === "DATE" ? (
-                    <div className="relative">
-                      <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="date"
-                        value={filters[column.name] || ""}
-                        onChange={(e) => handleFilterChange(column.name, e.target.value)}
-                        className="pl-8 glass border-border h-9"
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <DatePicker
+                      date={filters[column.name] || undefined}
+                      onDateChange={(date) => handleFilterChange(column.name, date ? date.toISOString().split('T')[0] : "")}
+                      disabled={isLoading}
+                      placeholder={`Filter by ${column.label.toLowerCase()}...`}
+                    />
                   ) : (
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -200,7 +197,7 @@ export const GlobalFilter = ({
               <Button
                 onClick={() => setIsOpen(false)}
                 size="sm"
-                className="bg-primary hover:bg-primary/90 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Apply Filters
               </Button>

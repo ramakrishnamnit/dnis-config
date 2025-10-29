@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ColumnMetadata } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,18 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
               error && "border-destructive focus:ring-destructive"
             )}
             autoFocus
+          />
+        );
+
+      case "DATE":
+        return (
+          <DatePicker
+            date={editValue}
+            onDateChange={(date) => setEditValue(date ? date.toISOString() : "")}
+            className={cn(
+              "border-primary focus:ring-primary focus:glow-red",
+              error && "border-destructive focus:ring-destructive"
+            )}
           />
         );
 

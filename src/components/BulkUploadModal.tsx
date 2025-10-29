@@ -191,7 +191,7 @@ export const BulkUploadModal = ({
                 <Button
                   onClick={handleDownloadTemplate}
                   variant="outline"
-                  className="glass-hover border-primary/30 hover:text-primary hover:glow-red"
+                  className="glass-hover border-primary/30 hover:text-primary"
                 >
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Download Template
@@ -358,7 +358,7 @@ export const BulkUploadModal = ({
                           alert("Edit reason must be at least 10 characters");
                         }
                       }}
-                      className="glass-hover bg-primary hover:bg-primary/90 text-white"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Upload {validCount} Row{validCount !== 1 ? "s" : ""}
@@ -404,7 +404,7 @@ export const BulkUploadModal = ({
                       handleReset();
                       onOpenChange(false);
                     }}
-                    className="glass-hover bg-primary hover:bg-primary/90 text-white"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     Done
                   </Button>

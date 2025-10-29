@@ -151,7 +151,7 @@ export const EditReasonModal = ({
           <Button
             onClick={handleSubmit}
             disabled={!isValidLength || isLoading}
-            className="glass-hover bg-primary hover:bg-primary/90 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (
               <>

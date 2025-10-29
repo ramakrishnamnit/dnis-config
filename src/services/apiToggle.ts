@@ -63,7 +63,9 @@ class ApiAdapter {
         request.country,
         request.businessUnit,
         request.page,
-        request.pageSize
+        request.pageSize,
+        request.filters,
+        request.globalSearch
       );
       return this.convertDataToReal(mockData);
     }

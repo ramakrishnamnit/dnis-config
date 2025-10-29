@@ -309,7 +309,7 @@ export const DownloadConfigModal = ({
               <Button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground glow-red"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {isDownloading ? (
                   <>

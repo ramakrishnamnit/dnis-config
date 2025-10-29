@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GlobalSearch } from "@/components/GlobalSearch";
-import { GlobalFilter } from "@/components/GlobalFilter";
 import { DynamicEditableTable } from "@/components/DynamicEditableTable";
 import { AddRowModal } from "@/components/AddRowModal";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
 import { EditReasonModal } from "@/components/EditReasonModal";
+import { TimeRangeFilter } from "@/components/TimeRangeFilter";
+import { SmartFilterModal } from "@/components/SmartFilterModal";
 import { useRowUpdates } from "@/hooks/useRowUpdates";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { configApiService } from "@/services/apiToggle";
@@ -68,6 +68,10 @@ const Index = () => {
   // Search and filter state
   const [globalSearch, setGlobalSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  
+  // Date range filter states (part of smart filters)
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   // Pagination
   const {
@@ -107,7 +111,7 @@ const Index = () => {
     if (metadata && country && businessUnit) {
       loadData();
     }
-  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters]);
+  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters, fromDate, toDate]);
 
   const loadMetadata = async () => {
     if (!selectedTableId) return;
@@ -144,9 +148,14 @@ const Index = () => {
         page: pagination.page,
         pageSize: pagination.pageSize,
         globalSearch: globalSearch || undefined,
-        filters: columnFilters,
+        filters: {
+          ...columnFilters,
+          ...(fromDate && { fromDate }),
+          ...(toDate && { toDate }),
+        },
       };
 
+      console.log('Loading data with filters:', request.filters);
       const dataResponse = await configApiService.getEntityData(request);
       setRows(dataResponse.rows);
       setTotalCount(dataResponse.totalCount);
@@ -167,10 +176,35 @@ const Index = () => {
   }, [resetToFirstPage]);
 
   const handleColumnFilter = useCallback((columnName: string, value: string) => {
-    setColumnFilters((prev) => ({
-      ...prev,
-      [columnName]: value,
-    }));
+    setColumnFilters((prev) => {
+      const newFilters = { ...prev };
+      if (value) {
+        newFilters[columnName] = value;
+      } else {
+        delete newFilters[columnName];
+      }
+      console.log('Column filter updated:', columnName, '=', value, 'All filters:', newFilters);
+      return newFilters;
+    });
+    resetToFirstPage();
+  }, [resetToFirstPage]);
+  
+  const handleDateRangeChange = useCallback((from: string, to: string) => {
+    setFromDate(from);
+    setToDate(to);
+    resetToFirstPage();
+  }, [resetToFirstPage]);
+  
+  const handleClearDateRange = useCallback(() => {
+    setFromDate("");
+    setToDate("");
+    resetToFirstPage();
+  }, [resetToFirstPage]);
+  
+  const handleClearAllFilters = useCallback(() => {
+    setColumnFilters({});
+    setFromDate("");
+    setToDate("");
     resetToFirstPage();
   }, [resetToFirstPage]);
 
@@ -317,6 +351,9 @@ const Index = () => {
   };
 
   const pendingRowCount = rowUpdates.getAllPendingRows().length;
+  
+  // Calculate active smart filter count (column filters + date range)
+  const activeSmartFilters = Object.keys(columnFilters).filter(key => columnFilters[key]).length + (fromDate || toDate ? 1 : 0);
 
   return (
     <Layout>
@@ -353,6 +390,9 @@ const Index = () => {
                             <h2 className="text-xl font-semibold text-foreground">{metadata.entityName}</h2>
                             <p className="text-sm text-muted-foreground">
                               {pagination.totalCount} total records
+                              {activeSmartFilters > 0 && (
+                                <span className="text-blue-500 ml-2">• {activeSmartFilters} smart filter{activeSmartFilters !== 1 ? "s" : ""} active</span>
+                              )}
                               {pendingRowCount > 0 && (
                                 <span className="text-primary ml-2">• {pendingRowCount} pending change{pendingRowCount !== 1 ? "s" : ""}</span>
                               )}
@@ -362,7 +402,7 @@ const Index = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          {/* Compact Global Search */}
+                          {/* Global Search */}
                           <div className="relative">
                             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
@@ -374,18 +414,23 @@ const Index = () => {
                             />
                           </div>
                           
-                          {/* Global Filter */}
-                          <GlobalFilter
+                          {/* Smart Filter Modal with Date Range */}
+                          <SmartFilterModal
                             metadata={metadata}
-                            filters={columnFilters}
-                            onFiltersChange={setColumnFilters}
-                            isLoading={isLoadingData}
+                            columnFilters={columnFilters}
+                            fromDate={fromDate}
+                            toDate={toDate}
+                            onColumnFilterChange={handleColumnFilter}
+                            onFromDateChange={(date) => handleDateRangeChange(date, toDate)}
+                            onToDateChange={(date) => handleDateRangeChange(fromDate, date)}
+                            onClearAll={handleClearAllFilters}
                           />
+                          
                           {pendingRowCount > 0 && (
                             <Button
                               onClick={handleBatchUpdate}
                               size="sm"
-                              className="glass-hover bg-primary hover:bg-primary/90 text-white relative"
+                              className="shadow-md hover:shadow-lg hover:glow-subtle hover:-translate-y-0.5 transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground relative"
                             >
                               <Save className="w-4 h-4 mr-2" />
                               Save All ({pendingRowCount})
@@ -424,25 +469,6 @@ const Index = () => {
                       </div>
                     </div>
 
-                    {/* Pending Changes Alert */}
-                    {pendingRowCount > 0 && (
-                      <Alert className="glass border-primary/50 flex-shrink-0">
-                        <AlertDescription className="flex items-center justify-between">
-                          <span className="text-foreground">
-                            You have {pendingRowCount} unsaved change{pendingRowCount !== 1 ? "s" : ""}. 
-                            Don't forget to save!
-                          </span>
-                          <Button
-                            onClick={handleBatchUpdate}
-                            size="sm"
-                            className="bg-primary hover:bg-primary/90 text-white"
-                          >
-                            <Save className="w-3 h-3 mr-1" />
-                            Save All
-                          </Button>
-                        </AlertDescription>
-                      </Alert>
-                    )}
 
                     {/* Dynamic Table - with flex-1 to take remaining space */}
                     <div className="flex-1 overflow-hidden min-h-0">
