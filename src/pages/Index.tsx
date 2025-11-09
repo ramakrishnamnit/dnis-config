@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { RegionSelector } from "@/components/RegionSelector";
 import { DownloadConfigModal } from "@/components/DownloadConfigModal";
@@ -11,8 +11,7 @@ import { DynamicEditableTable } from "@/components/DynamicEditableTable";
 import { AddRowModal } from "@/components/AddRowModal";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
 import { EditReasonModal } from "@/components/EditReasonModal";
-import { TimeRangeFilter } from "@/components/TimeRangeFilter";
-import { SmartFilterModal } from "@/components/SmartFilterModal";
+import { FilterBuilder, FilterRule, FilterField } from "@/components/FilterBuilder";
 import { useRowUpdates } from "@/hooks/useRowUpdates";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { configApiService } from "@/services/apiToggle";
@@ -68,10 +67,7 @@ const Index = () => {
   // Search and filter state
   const [globalSearch, setGlobalSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  
-  // Date range filter states (part of smart filters)
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
 
   // Pagination
   const {
@@ -88,6 +84,53 @@ const Index = () => {
 
   // Row updates management
   const rowUpdates = useRowUpdates(metadata);
+
+  const filterFields = useMemo<FilterField[]>(() => {
+    if (!metadata) return [];
+
+    const mapDataTypeToFilterType = (dataType: string): FilterField["type"] => {
+      switch (dataType) {
+        case "STRING":
+          return "text";
+        case "NUMBER":
+          return "number";
+        case "BOOLEAN":
+          return "boolean";
+        case "DATE":
+          return "date";
+        case "ENUM":
+          return "select";
+        default:
+          return "text";
+      }
+    };
+
+    return metadata.columns
+      .filter((column) => column.isFilterable)
+      .map((column) => ({
+        name: column.name,
+        label: column.label,
+        type: mapDataTypeToFilterType(column.dataType),
+        options: column.dataType === "ENUM" ? column.enumValues : undefined,
+      }));
+  }, [metadata]);
+
+  const advancedFilters = useMemo<Record<string, string>>(() => {
+    const filters: Record<string, string> = {};
+
+    filterRules.forEach((rule) => {
+      if (!rule.field) return;
+      if (Array.isArray(rule.value) && rule.value.length === 0) return;
+      if (!Array.isArray(rule.value) && String(rule.value ?? "").trim() === "") return;
+
+      const key = `${rule.field}__${rule.operator}`;
+      const value = Array.isArray(rule.value) ? rule.value.join(",") : String(rule.value);
+
+      filters[key] = value;
+    });
+
+    return filters;
+  }, [filterRules]);
 
   // Modal states
   const [addRowModalOpen, setAddRowModalOpen] = useState(false);
@@ -111,7 +154,7 @@ const Index = () => {
     if (metadata && country && businessUnit) {
       loadData();
     }
-  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters, fromDate, toDate]);
+  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters, advancedFilters, country, businessUnit]);
 
   const loadMetadata = async () => {
     if (!selectedTableId) return;
@@ -150,8 +193,7 @@ const Index = () => {
         globalSearch: globalSearch || undefined,
         filters: {
           ...columnFilters,
-          ...(fromDate && { fromDate }),
-          ...(toDate && { toDate }),
+          ...advancedFilters,
         },
       };
 
@@ -189,22 +231,9 @@ const Index = () => {
     resetToFirstPage();
   }, [resetToFirstPage]);
   
-  const handleDateRangeChange = useCallback((from: string, to: string) => {
-    setFromDate(from);
-    setToDate(to);
-    resetToFirstPage();
-  }, [resetToFirstPage]);
-  
-  const handleClearDateRange = useCallback(() => {
-    setFromDate("");
-    setToDate("");
-    resetToFirstPage();
-  }, [resetToFirstPage]);
-  
   const handleClearAllFilters = useCallback(() => {
     setColumnFilters({});
-    setFromDate("");
-    setToDate("");
+    setFilterRules([]);
     resetToFirstPage();
   }, [resetToFirstPage]);
 
@@ -352,8 +381,13 @@ const Index = () => {
 
   const pendingRowCount = rowUpdates.getAllPendingRows().length;
   
-  // Calculate active smart filter count (column filters + date range)
-  const activeSmartFilters = Object.keys(columnFilters).filter(key => columnFilters[key]).length + (fromDate || toDate ? 1 : 0);
+  useEffect(() => {
+    resetToFirstPage();
+  }, [advancedFilters, resetToFirstPage]);
+  
+  const activeColumnFilterCount = Object.keys(columnFilters).filter((key) => columnFilters[key]).length;
+  const activeAdvancedFilterCount = Object.keys(advancedFilters).length;
+  const activeFilterTotal = activeColumnFilterCount + activeAdvancedFilterCount;
 
   return (
     <Layout>
@@ -390,8 +424,8 @@ const Index = () => {
                             <h2 className="text-xl font-semibold text-foreground">{metadata.entityName}</h2>
                             <p className="text-sm text-muted-foreground">
                               {pagination.totalCount} total records
-                              {activeSmartFilters > 0 && (
-                                <span className="text-blue-500 ml-2">• {activeSmartFilters} smart filter{activeSmartFilters !== 1 ? "s" : ""} active</span>
+                              {activeFilterTotal > 0 && (
+                                <span className="text-blue-500 ml-2">• {activeFilterTotal} filter{activeFilterTotal !== 1 ? "s" : ""} active</span>
                               )}
                               {pendingRowCount > 0 && (
                                 <span className="text-primary ml-2">• {pendingRowCount} pending change{pendingRowCount !== 1 ? "s" : ""}</span>
@@ -414,17 +448,22 @@ const Index = () => {
                             />
                           </div>
                           
-                          {/* Smart Filter Modal with Date Range */}
-                          <SmartFilterModal
-                            metadata={metadata}
-                            columnFilters={columnFilters}
-                            fromDate={fromDate}
-                            toDate={toDate}
-                            onColumnFilterChange={handleColumnFilter}
-                            onFromDateChange={(date) => handleDateRangeChange(date, toDate)}
-                            onToDateChange={(date) => handleDateRangeChange(fromDate, date)}
-                            onClearAll={handleClearAllFilters}
+                          <FilterBuilder
+                            fields={filterFields}
+                            rules={filterRules}
+                            onRulesChange={setFilterRules}
+                            className="border-border"
                           />
+                          {activeFilterTotal > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleClearAllFilters}
+                              className="text-xs text-destructive hover:bg-destructive/10"
+                            >
+                              Clear Filters
+                            </Button>
+                          )}
                           
                           {pendingRowCount > 0 && (
                             <Button

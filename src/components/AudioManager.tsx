@@ -3,7 +3,6 @@ import { Music, Play, Download, Upload, Trash2, Plus, Filter, Search, User, Cale
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilterBuilder, FilterRule, FilterField } from "./FilterBuilder";
 import { cn } from "@/lib/utils";
 import {
@@ -153,15 +152,8 @@ export const AudioManager = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="messages" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="glass-strong w-fit mb-3">
-          <TabsTrigger value="messages" className="text-xs">Messages</TabsTrigger>
-          <TabsTrigger value="languages" className="text-xs">Languages</TabsTrigger>
-        </TabsList>
-
-        {/* Messages Tab */}
-        <TabsContent value="messages" className="flex-1 overflow-hidden m-0 flex gap-3">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-hidden m-0 flex gap-3">
           {/* Left Panel: Messages List */}
           <div className="w-72 glass-strong rounded-xl border border-border p-3 flex flex-col">
             <div className="flex items-center justify-between mb-3">
@@ -306,52 +298,8 @@ export const AudioManager = () => {
               </div>
             )}
           </div>
-        </TabsContent>
-
-        {/* Languages Tab */}
-        <TabsContent value="languages" className="flex-1 overflow-hidden m-0">
-          <div className="glass-strong rounded-xl border border-border p-3 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">All Languages</h3>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
-                <Plus className="w-3 h-3 mr-1" />
-                Add Language
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="h-8 text-xs">Language Name</TableHead>
-                    <TableHead className="h-8 text-xs">Used In</TableHead>
-                    <TableHead className="h-8 text-xs text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockLanguages.map((lang) => {
-                    const usageCount = mockMessages.reduce((count, msg) => {
-                      return count + (msg.languages.some(l => l.name === lang.name) ? 1 : 0);
-                    }, 0);
-                    return (
-                      <TableRow key={lang.id}>
-                        <TableCell className="py-2 text-xs font-medium">{lang.name}</TableCell>
-                        <TableCell className="py-2 text-xs text-muted-foreground">
-                          {usageCount} {usageCount === 1 ? "message" : "messages"}
-                        </TableCell>
-                        <TableCell className="py-2 text-right">
-                          <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive">
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
