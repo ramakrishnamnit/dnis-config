@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Music, Play, Download, Upload, Trash2, Plus, Filter, Search, User, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,11 +88,14 @@ const filterFields: FilterField[] = [
   { name: "fileName", label: "File Name", type: "text" },
 ];
 
+const PAGE_SIZE = 10;
+
 export const AudioManager = () => {
   const [viewMode, setViewMode] = useState<"my" | "all">("all");
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(mockMessages[0]);
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const currentUser = "John Doe";
 
@@ -102,6 +105,30 @@ export const AudioManager = () => {
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredMessages.length / PAGE_SIZE));
+  const paginatedMessages = filteredMessages.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!filteredMessages.length) {
+      setSelectedMessage(null);
+      return;
+    }
+
+    if (!selectedMessage || !filteredMessages.some((msg) => msg.id === selectedMessage.id)) {
+      const newSelection = filteredMessages[(currentPage - 1) * PAGE_SIZE] ?? filteredMessages[0];
+      setSelectedMessage(newSelection ?? null);
+    }
+  }, [filteredMessages, selectedMessage, currentPage]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -168,13 +195,16 @@ export const AudioManager = () => {
               <Input
                 placeholder="Search messages..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="pl-7 h-8 text-xs"
               />
             </div>
             <ScrollArea className="flex-1">
               <div className="space-y-1.5">
-                {filteredMessages.map((msg) => {
+                {paginatedMessages.map((msg) => {
                   const uploadedCount = msg.languages.filter(l => l.audio).length;
                   const totalCount = msg.languages.length;
                   return (
@@ -202,6 +232,29 @@ export const AudioManager = () => {
                 })}
               </div>
             </ScrollArea>
+            <div className="flex items-center justify-between pt-3 border-t border-border mt-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-2"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-[10px] text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-2"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
 
           {/* Center Panel: Language Grid */}
