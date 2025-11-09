@@ -390,8 +390,8 @@ const Index = () => {
   const activeFilterTotal = activeColumnFilterCount + activeAdvancedFilterCount;
 
   return (
-    <Layout>
-        <div className="flex flex-col space-y-4 h-full overflow-hidden">
+    <Layout fullWidth contentClassName="gap-3">
+        <div className="flex flex-col gap-3 h-full overflow-hidden">
             {/* Region & Table Selector */}
             <div className="flex-shrink-0">
               <RegionSelector
@@ -417,7 +417,7 @@ const Index = () => {
                 ) : metadata ? (
                   <>
                     {/* Compact Table Info & Actions Bar */}
-                    <div className="glass rounded-xl p-4 border border-border shadow-lg flex-shrink-0">
+                    <div className="glass rounded-xl p-3 border border-border shadow-lg flex-shrink-0">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
                           <div>
@@ -528,15 +528,15 @@ const Index = () => {
 
                     {/* Pagination */}
                     {pagination.totalCount > 0 && (
-                      <div className="glass rounded-xl p-4 border border-border flex-shrink-0">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-muted-foreground">Rows per page:</label>
+                      <div className="glass rounded-xl p-2 border border-border flex-shrink-0">
+                        <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-muted-foreground">Rows per page:</label>
                             <Select
                               value={pagination.pageSize.toString()}
                               onValueChange={(value) => setPageSize(Number(value))}
                             >
-                              <SelectTrigger className="glass border-border w-[80px]">
+                              <SelectTrigger className="glass border-border w-[80px] h-8 px-2 py-1 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="glass border-border">
@@ -548,18 +548,17 @@ const Index = () => {
                             </Select>
                           </div>
 
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground">
                               Page {pagination.page} of {pagination.totalPages}
                             </span>
-                            
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={firstPage}
                                 disabled={pagination.page === 1}
-                                className="glass-hover border-border"
+                                className="glass-hover border-border h-8 px-2"
                               >
                                 <ChevronsLeft className="w-4 h-4" />
                               </Button>
@@ -568,7 +567,7 @@ const Index = () => {
                                 size="sm"
                                 onClick={prevPage}
                                 disabled={pagination.page === 1}
-                                className="glass-hover border-border"
+                                className="glass-hover border-border h-8 px-2"
                               >
                                 <ChevronLeft className="w-4 h-4" />
                               </Button>
@@ -577,7 +576,7 @@ const Index = () => {
                                 size="sm"
                                 onClick={nextPage}
                                 disabled={pagination.page === pagination.totalPages}
-                                className="glass-hover border-border"
+                                className="glass-hover border-border h-8 px-2"
                               >
                                 <ChevronRight className="w-4 h-4" />
                               </Button>
@@ -586,7 +585,7 @@ const Index = () => {
                                 size="sm"
                                 onClick={lastPage}
                                 disabled={pagination.page === pagination.totalPages}
-                                className="glass-hover border-border"
+                                className="glass-hover border-border h-8 px-2"
                               >
                                 <ChevronsRight className="w-4 h-4" />
                               </Button>

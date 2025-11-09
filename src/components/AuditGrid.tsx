@@ -437,37 +437,45 @@ export const AuditGrid = () => {
       </div>
 
       {/* Compact Footer */}
-      <div className="flex-shrink-0 mt-3 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex-shrink-0 mt-2 flex items-center justify-between text-[11px] text-muted-foreground py-1">
         <span>
           Showing {pageStart}-{pageEnd} of {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}
         </span>
         {filteredEvents.length > 0 && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]">Rows per page:</span>
               <Select
                 value={pagination.pageSize.toString()}
                 onValueChange={(value) => setPageSize(Number(value))}
               >
-                <SelectTrigger className="glass border-border h-8 w-[80px]">
+                <SelectTrigger className="glass border border-border h-7 w-[72px] px-2 py-1 text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="glass border-border">
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem className="text-xs py-1.5" value="5">
+                    5
+                  </SelectItem>
+                  <SelectItem className="text-xs py-1.5" value="10">
+                    10
+                  </SelectItem>
+                  <SelectItem className="text-xs py-1.5" value="25">
+                    25
+                  </SelectItem>
+                  <SelectItem className="text-xs py-1.5" value="50">
+                    50
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={firstPage}
                 disabled={pagination.page === 1}
-                className="glass-hover border-border h-7 w-7"
+                className="glass-hover border-border h-6 w-6"
               >
                 <ChevronsLeft className="w-3 h-3" />
               </Button>
@@ -476,11 +484,11 @@ export const AuditGrid = () => {
                 size="icon"
                 onClick={prevPage}
                 disabled={pagination.page === 1}
-                className="glass-hover border-border h-7 w-7"
+                className="glass-hover border-border h-6 w-6"
               >
                 <ChevronLeft className="w-3 h-3" />
               </Button>
-              <span className="min-w-[80px] text-center">
+              <span className="min-w-[68px] text-center">
                 Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
               </span>
               <Button
@@ -488,7 +496,7 @@ export const AuditGrid = () => {
                 size="icon"
                 onClick={nextPage}
                 disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0}
-                className="glass-hover border-border h-7 w-7"
+                className="glass-hover border-border h-6 w-6"
               >
                 <ChevronRight className="w-3 h-3" />
               </Button>
@@ -497,7 +505,7 @@ export const AuditGrid = () => {
                 size="icon"
                 onClick={lastPage}
                 disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0}
-                className="glass-hover border-border h-7 w-7"
+                className="glass-hover border-border h-6 w-6"
               >
                 <ChevronsRight className="w-3 h-3" />
               </Button>
