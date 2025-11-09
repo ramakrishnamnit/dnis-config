@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Music, Play, Download, Upload, Trash2, Plus, Filter, Search, User, Calendar, Clock } from "lucide-react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Music, Play, Pause, Download, Upload, Trash2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Message {
   id: string;
@@ -35,6 +53,8 @@ interface AudioFile {
   duration: string;
   uploadedBy: string;
   uploadedAt: string;
+  file?: File;
+  url?: string;
 }
 
 // Mock data
@@ -90,21 +110,80 @@ const filterFields: FilterField[] = [
 
 const PAGE_SIZE = 10;
 
+const formatBytes = (bytes: number) => {
+  if (!bytes) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB"];
+  const e = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, e)).toFixed(1)} ${units[e]}`;
+};
+
+const formatDate = (date: Date) => date.toISOString().slice(0, 10);
+
 export const AudioManager = () => {
+  const buildInitialMessages = () =>
+    mockMessages.map((message) => ({
+      ...message,
+      languages: message.languages.map((lang) => ({
+        ...lang,
+        audio: lang.audio ? { ...lang.audio } : undefined,
+      })),
+    }));
+
   const [viewMode, setViewMode] = useState<"my" | "all">("all");
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(mockMessages[0]);
+  const [messages, setMessages] = useState<Message[]>(() => buildInitialMessages());
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(() => {
+    const initial = buildInitialMessages();
+    return initial[0]?.id ?? null;
+  });
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<{ messageId: string; languageId: string } | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newMessageName, setNewMessageName] = useState("");
+  const [newMessageDescription, setNewMessageDescription] = useState("");
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+  const [selectedLanguageOption, setSelectedLanguageOption] = useState("");
 
   const currentUser = "John Doe";
 
-  const filteredMessages = mockMessages.filter((msg) => {
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const uploadedBlobUrls = useRef<Set<string>>(new Set());
+
+  const selectedMessage = useMemo(
+    () => (selectedMessageId ? messages.find((msg) => msg.id === selectedMessageId) ?? null : null),
+    [messages, selectedMessageId]
+  );
+
+  const availableLanguages = useMemo(() => {
+    if (!selectedMessage) {
+      return [];
+    }
+    const existing = new Set(
+      selectedMessage.languages.map((lang) => lang.name.toLowerCase())
+    );
+    return mockLanguages.filter((lang) => !existing.has(lang.name.toLowerCase()));
+  }, [selectedMessage]);
+
+  const filteredMessages = useMemo(() => {
+    const bySearch = messages.filter((msg) => {
     if (searchQuery && !msg.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
     return true;
   });
+
+    if (viewMode === "my") {
+      return bySearch.filter((msg) =>
+        msg.languages.some((lang) => lang.audio?.uploadedBy === currentUser)
+      );
+    }
+
+    return bySearch;
+  }, [messages, searchQuery, viewMode, currentUser]);
 
   const totalPages = Math.max(1, Math.ceil(filteredMessages.length / PAGE_SIZE));
   const paginatedMessages = filteredMessages.slice(
@@ -120,17 +199,354 @@ export const AudioManager = () => {
 
   useEffect(() => {
     if (!filteredMessages.length) {
-      setSelectedMessage(null);
+      setSelectedMessageId(null);
       return;
     }
 
-    if (!selectedMessage || !filteredMessages.some((msg) => msg.id === selectedMessage.id)) {
+    if (!selectedMessageId || !filteredMessages.some((msg) => msg.id === selectedMessageId)) {
       const newSelection = filteredMessages[(currentPage - 1) * PAGE_SIZE] ?? filteredMessages[0];
-      setSelectedMessage(newSelection ?? null);
+      setSelectedMessageId(newSelection?.id ?? null);
     }
-  }, [filteredMessages, selectedMessage, currentPage]);
+  }, [filteredMessages, selectedMessageId, currentPage]);
+
+  useEffect(
+    () => () => {
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      uploadedBlobUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      uploadedBlobUrls.current.clear();
+    },
+    []
+  );
+
+  const { toast } = useToast();
+
+  const triggerFileInput = (messageId: string, languageId: string) => {
+    const key = `${messageId}-${languageId}`;
+    const input = fileInputRefs.current[key];
+    if (input) {
+      input.value = "";
+      input.click();
+    }
+  };
+
+  const handleStartCreateMessage = () => {
+    setNewMessageName("");
+    setNewMessageDescription("");
+    setCreateDialogOpen(true);
+  };
+
+  const handleConfirmCreateMessage = () => {
+    const trimmedName = newMessageName.trim();
+    const trimmedDescription = newMessageDescription.trim();
+
+    if (!trimmedName) {
+      toast({
+        title: "Name required",
+        description: "Please provide a name for the new message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newMessage: Message = {
+      id: `msg-${Date.now()}`,
+      name: trimmedName,
+      description: trimmedDescription || undefined,
+      languages: [],
+    };
+    setMessages((prev) => [newMessage, ...prev]);
+    setSelectedMessageId(newMessage.id);
+    setCurrentPage(1);
+    setCreateDialogOpen(false);
+    setNewMessageName("");
+    setNewMessageDescription("");
+    toast({
+      title: "Message created",
+      description: `${newMessage.name} is ready to configure.`,
+    });
+  };
+
+  const handleStartAddLanguage = () => {
+    if (!selectedMessage) {
+      toast({
+        title: "No message selected",
+        description: "Pick a message before adding languages.",
+      });
+      return;
+    }
+
+    if (!availableLanguages.length) {
+      toast({
+        title: "All languages added",
+        description: "No more languages are available to add to this message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedLanguageOption(availableLanguages[0]?.id ?? "");
+    setLanguageDialogOpen(true);
+  };
+
+  const handleConfirmAddLanguage = () => {
+    if (!selectedMessage) {
+      toast({
+        title: "No message selected",
+        description: "Pick a message before adding languages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedLanguageOption) {
+      toast({
+        title: "Select a language",
+        description: "Choose which language you want to add.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const languageDefinition = availableLanguages.find((lang) => lang.id === selectedLanguageOption);
+
+    if (!languageDefinition) {
+      toast({
+        title: "Language unavailable",
+        description: "That language cannot be added right now.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const languageToAdd: Language = {
+      id: `${languageDefinition.id}-${Date.now()}`,
+      name: languageDefinition.name,
+    };
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === selectedMessage.id
+          ? {
+              ...msg,
+              languages: [...msg.languages, languageToAdd],
+            }
+          : msg
+      )
+    );
+
+    setLanguageDialogOpen(false);
+    setSelectedLanguageOption("");
+
+    toast({
+      title: "Language added",
+      description: `${languageDefinition.name} has been added to ${selectedMessage.name}.`,
+    });
+  };
+
+  const handleStopPlayback = useCallback(() => {
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+      audioElementRef.current = null;
+      setCurrentlyPlaying(null);
+    }
+  }, []);
+
+  const handlePlayAudio = (messageId: string, lang: Language) => {
+    if (!lang.audio?.url) {
+      toast({
+        title: "No audio file",
+        description: `Upload audio for ${lang.name} before playing.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentlyPlaying?.languageId === lang.id && currentlyPlaying?.messageId === messageId) {
+      handleStopPlayback();
+      toast({
+        title: "Playback stopped",
+        description: lang.audio.fileName,
+      });
+      return;
+    }
+
+    handleStopPlayback();
+
+    const audio = new Audio(lang.audio.url);
+    audioElementRef.current = audio;
+    audio.onended = () => {
+      setCurrentlyPlaying(null);
+      audioElementRef.current = null;
+    };
+
+    audio
+      .play()
+      .then(() => {
+        setCurrentlyPlaying({ messageId, languageId: lang.id });
+        toast({
+          title: "Playing audio",
+          description: lang.audio?.fileName,
+        });
+      })
+      .catch(() => {
+        setCurrentlyPlaying(null);
+        audioElementRef.current = null;
+        toast({
+          title: "Playback failed",
+          description: "Unable to play this audio file.",
+          variant: "destructive",
+        });
+      });
+  };
+
+  const handleDownloadAudio = (lang: Language) => {
+    if (!lang.audio?.url) {
+      toast({
+        title: "Download unavailable",
+        description: `No audio file found for ${lang.name}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = lang.audio.url;
+    link.download = lang.audio.fileName || "audio-file";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Download started",
+      description: lang.audio.fileName,
+    });
+  };
+
+  const handleRemoveAudio = (messageId: string, lang: Language) => {
+    if (!lang.audio) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Remove audio for ${lang.name}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    if (currentlyPlaying?.languageId === lang.id && currentlyPlaying.messageId === messageId) {
+      handleStopPlayback();
+    }
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              languages: msg.languages.map((language) =>
+                language.id === lang.id
+                  ? {
+                      ...language,
+                      audio: undefined,
+                    }
+                  : language
+              ),
+            }
+          : msg
+      )
+    );
+
+    if (lang.audio.url && lang.audio.url.startsWith("blob:")) {
+      URL.revokeObjectURL(lang.audio.url);
+      uploadedBlobUrls.current.delete(lang.audio.url);
+    }
+
+    toast({
+      title: "Audio removed",
+      description: `${lang.name} no longer has an audio file.`,
+    });
+  };
+
+  const handleFileSelection = (
+    messageId: string,
+    languageId: string,
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const fileUrl = URL.createObjectURL(file);
+    uploadedBlobUrls.current.add(fileUrl);
+    const newAudioId = `audio-${Date.now()}`;
+
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) {
+          return msg;
+        }
+
+        return {
+          ...msg,
+          languages: msg.languages.map((lang) => {
+            if (lang.id !== languageId) {
+              return lang;
+            }
+
+            if (lang.audio?.url && lang.audio.url.startsWith("blob:")) {
+              URL.revokeObjectURL(lang.audio.url);
+              uploadedBlobUrls.current.delete(lang.audio.url);
+            }
+
+            return {
+              ...lang,
+              audio: {
+                id: lang.audio?.id ?? newAudioId,
+                fileName: file.name,
+                fileSize: formatBytes(file.size),
+                duration: lang.audio?.duration ?? "--:--",
+                uploadedBy: currentUser,
+                uploadedAt: formatDate(new Date()),
+                file,
+                url: fileUrl,
+              },
+            };
+          }),
+        };
+      })
+    );
+
+    if (currentlyPlaying?.languageId === languageId && currentlyPlaying.messageId === messageId) {
+      handleStopPlayback();
+    }
+
+    const messageName = selectedMessage?.name ?? "Message";
+    const languageName =
+      selectedMessage?.languages.find((lang) => lang.id === languageId)?.name ?? "Language";
+
+    toast({
+      title: "Audio uploaded",
+      description: `${file.name} uploaded for ${languageName} in ${messageName}.`,
+    });
+
+    event.target.value = "";
+  };
+
+  useEffect(() => {
+    if (
+      currentlyPlaying &&
+      selectedMessageId &&
+      currentlyPlaying.messageId !== selectedMessageId
+    ) {
+      handleStopPlayback();
+    }
+  }, [selectedMessageId, currentlyPlaying, handleStopPlayback]);
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-hidden">
       {/* Compact Header */}
       <div className="flex-shrink-0 mb-3">
@@ -148,7 +564,10 @@ export const AudioManager = () => {
             {/* My/All Toggle */}
             <div className="inline-flex items-center gap-1 p-1 glass rounded-lg border border-border">
               <button
-                onClick={() => setViewMode("my")}
+                  onClick={() => {
+                    setViewMode("my");
+                    setCurrentPage(1);
+                  }}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded transition-all",
                   viewMode === "my"
@@ -159,7 +578,10 @@ export const AudioManager = () => {
                 My Audios
               </button>
               <button
-                onClick={() => setViewMode("all")}
+                  onClick={() => {
+                    setViewMode("all");
+                    setCurrentPage(1);
+                  }}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded transition-all",
                   viewMode === "all"
@@ -185,7 +607,7 @@ export const AudioManager = () => {
           <div className="w-72 glass-strong rounded-xl border border-border p-3 flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-foreground">Messages</h3>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleStartCreateMessage}>
                 <Plus className="w-3 h-3 mr-1" />
                 New
               </Button>
@@ -210,10 +632,10 @@ export const AudioManager = () => {
                   return (
                     <button
                       key={msg.id}
-                      onClick={() => setSelectedMessage(msg)}
+                        onClick={() => setSelectedMessageId(msg.id)}
                       className={cn(
                         "w-full text-left p-2.5 rounded-lg border transition-all",
-                        selectedMessage?.id === msg.id
+                          selectedMessageId === msg.id
                           ? "bg-primary/10 border-primary"
                           : "border-border hover:bg-card-hover"
                       )}
@@ -269,7 +691,7 @@ export const AudioManager = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleStartAddLanguage}>
                       <Plus className="w-3 h-3 mr-1" />
                       Add Language
                     </Button>
@@ -290,6 +712,20 @@ export const AudioManager = () => {
                     <TableBody>
                       {selectedMessage.languages.map((lang) => (
                         <TableRow key={lang.id} className="group">
+                            <input
+                              type="file"
+                              accept="audio/*"
+                              className="hidden"
+                              ref={(element) => {
+                                const key = `${selectedMessage.id}-${lang.id}`;
+                                if (element) {
+                                  fileInputRefs.current[key] = element;
+                                } else {
+                                  delete fileInputRefs.current[key];
+                                }
+                              }}
+                              onChange={(event) => handleFileSelection(selectedMessage.id, lang.id, event)}
+                            />
                           <TableCell className="py-2 text-xs font-medium">{lang.name}</TableCell>
                           <TableCell className="py-2">
                             {lang.audio ? (
@@ -315,21 +751,50 @@ export const AudioManager = () => {
                             <div className="flex items-center justify-end gap-1">
                               {lang.audio ? (
                                 <>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-primary/10 hover:text-primary">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                                      onClick={() => handlePlayAudio(selectedMessage.id, lang)}
+                                    >
+                                      {currentlyPlaying?.languageId === lang.id && currentlyPlaying?.messageId === selectedMessage.id ? (
+                                        <Pause className="w-3 h-3" />
+                                      ) : (
                                     <Play className="w-3 h-3" />
+                                      )}
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-card-hover">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 hover:bg-card-hover"
+                                      onClick={() => handleDownloadAudio(lang)}
+                                    >
                                     <Download className="w-3 h-3" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-card-hover">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 hover:bg-card-hover"
+                                      onClick={() => triggerFileInput(selectedMessage.id, lang.id)}
+                                    >
                                     <Upload className="w-3 h-3" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+                                      onClick={() => handleRemoveAudio(selectedMessage.id, lang)}
+                                    >
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </>
                               ) : (
-                                <Button size="sm" variant="outline" className="h-7 text-xs">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs"
+                                    onClick={() => triggerFileInput(selectedMessage.id, lang.id)}
+                                  >
                                   <Upload className="w-3 h-3 mr-1" />
                                   Upload
                                 </Button>
@@ -354,5 +819,127 @@ export const AudioManager = () => {
         </div>
       </div>
     </div>
+
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) {
+            setNewMessageName("");
+            setNewMessageDescription("");
+          }
+        }}
+      >
+        <DialogContent className="glass border-border sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Create Message</DialogTitle>
+            <DialogDescription>
+              Provide a name and description for the new audio message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="audio-message-name">Message name</Label>
+              <Input
+                id="audio-message-name"
+                value={newMessageName}
+                onChange={(event) => setNewMessageName(event.target.value)}
+                placeholder="e.g. Queue Music"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="audio-message-description">Description</Label>
+              <Textarea
+                id="audio-message-description"
+                value={newMessageDescription}
+                onChange={(event) => setNewMessageDescription(event.target.value)}
+                placeholder="Optional description for context"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreateDialogOpen(false);
+                setNewMessageName("");
+                setNewMessageDescription("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleConfirmCreateMessage}>
+              Create message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={languageDialogOpen}
+        onOpenChange={(open) => {
+          setLanguageDialogOpen(open);
+          if (!open) {
+            setSelectedLanguageOption("");
+          }
+        }}
+      >
+        <DialogContent className="glass border-border sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Add Language</DialogTitle>
+            <DialogDescription>
+              Choose which language you would like to configure for this message.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="audio-language-select">Language</Label>
+              <Select
+                value={selectedLanguageOption}
+                onValueChange={setSelectedLanguageOption}
+                disabled={!availableLanguages.length}
+              >
+                <SelectTrigger id="audio-language-select">
+                  <SelectValue placeholder="Select a language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableLanguages.map((lang) => (
+                    <SelectItem key={lang.id} value={lang.id}>
+                      {lang.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {!availableLanguages.length ? (
+              <p className="text-xs text-muted-foreground">
+                All available languages have already been added to this message.
+              </p>
+            ) : null}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setLanguageDialogOpen(false);
+                setSelectedLanguageOption("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmAddLanguage}
+              disabled={!availableLanguages.length}
+            >
+              Add language
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
