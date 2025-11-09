@@ -12,9 +12,9 @@ export const NavigationTabs = () => {
   ];
   
   return (
-    <div className="glass-strong border-b border-border shadow-sm">
-      <div className="container mx-auto px-6">
-        <nav className="flex items-center gap-8" role="tablist">
+    <div className="glass-strong border-b border-border">
+      <div className="container mx-auto px-4">
+        <nav className="flex items-center gap-6" role="tablist">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = location.pathname === tab.path;
@@ -26,16 +26,16 @@ export const NavigationTabs = () => {
                 role="tab"
                 aria-selected={isActive}
                 className={cn(
-                  "flex items-center gap-2 px-1 py-4 text-sm font-medium transition-all relative",
+                  "flex items-center gap-2 px-1 py-3 text-xs font-medium transition-all relative",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
                 {isActive && (
-                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-primary shadow-[0_2px_8px_rgba(220,38,38,0.4)]" />
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-primary" />
                 )}
               </Link>
             );

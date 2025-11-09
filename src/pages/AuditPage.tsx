@@ -1,10 +1,10 @@
 import { Layout } from "@/components/Layout";
-import { AuditTrailViewer } from "@/components/AuditTrailViewer";
+import { AuditGrid } from "@/components/AuditGrid";
 
 const AuditPage = () => {
   return (
     <Layout>
-      <AuditTrailViewer />
+      <AuditGrid />
     </Layout>
   );
 };

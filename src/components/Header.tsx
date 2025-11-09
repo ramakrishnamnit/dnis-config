@@ -17,18 +17,18 @@ interface HeaderProps {
 
 export const Header = ({ theme, onThemeChange }: HeaderProps) => {
   return (
-    <header className="glass-strong sticky top-0 z-50 border-b border-border shadow-md">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between gap-6">
+    <header className="glass-strong sticky top-0 z-50 border-b border-border shadow-sm">
+      <div className="container mx-auto px-4 py-2.5">
+        <div className="flex items-center justify-between gap-4">
           {/* Logo & Title */}
-          <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center glow-red">
-                <Shield className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">DNIS Config Manager</h1>
-                <p className="text-xs text-muted-foreground">HSBC Enterprise Portal</p>
+                <h1 className="text-lg font-semibold text-foreground">DNIS Config Manager</h1>
+                <p className="text-[10px] text-muted-foreground">HSBC Enterprise Portal</p>
               </div>
             </Link>
           </div>

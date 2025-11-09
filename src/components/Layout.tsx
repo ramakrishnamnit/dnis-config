@@ -19,11 +19,20 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <Header theme={theme} onThemeChange={setTheme} />
-      <NavigationTabs />
-      <main className="flex-1 overflow-hidden bg-background">
-        <div className="h-full flex flex-col container mx-auto px-6 py-6">
-          <div className="glass-strong rounded-xl shadow-lg p-6 flex-1 overflow-hidden flex flex-col">
+      {/* Compact Header */}
+      <div className="flex-shrink-0">
+        <Header theme={theme} onThemeChange={setTheme} />
+      </div>
+      
+      {/* Slim Navigation */}
+      <div className="flex-shrink-0">
+        <NavigationTabs />
+      </div>
+      
+      {/* Main Content - Maximize space */}
+      <main className="flex-1 overflow-hidden bg-background min-h-0">
+        <div className="h-full flex flex-col container mx-auto px-4 py-3">
+          <div className="glass-strong rounded-xl shadow-lg p-4 flex-1 overflow-hidden flex flex-col">
             {children}
           </div>
         </div>

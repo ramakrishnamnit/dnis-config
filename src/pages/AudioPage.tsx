@@ -1,10 +1,10 @@
 import { Layout } from "@/components/Layout";
-import { AudioAssetManager } from "@/components/AudioAssetManager";
+import { AudioManager } from "@/components/AudioManager";
 
 const AudioPage = () => {
   return (
     <Layout>
-      <AudioAssetManager />
+      <AudioManager />
     </Layout>
   );
 };
