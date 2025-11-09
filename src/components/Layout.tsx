@@ -18,7 +18,7 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [theme]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden min-h-0">
       {/* Compact Header */}
       <div className="flex-shrink-0">
         <Header theme={theme} onThemeChange={setTheme} />
@@ -31,8 +31,8 @@ export const Layout = ({ children }: LayoutProps) => {
       
       {/* Main Content - Maximize space */}
       <main className="flex-1 overflow-hidden bg-background min-h-0">
-        <div className="h-full flex flex-col container mx-auto px-4 py-3">
-          <div className="glass-strong rounded-xl shadow-lg p-4 flex-1 overflow-hidden flex flex-col">
+        <div className="h-full flex flex-col container mx-auto px-4 py-3 min-h-0">
+          <div className="glass-strong rounded-xl shadow-lg p-4 flex-1 overflow-hidden flex flex-col min-h-0">
             {children}
           </div>
         </div>

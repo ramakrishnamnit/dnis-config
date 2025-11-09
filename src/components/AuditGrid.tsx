@@ -1,9 +1,29 @@
-import { useState } from "react";
-import { History, Edit, Plus, Trash2, Download, User, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  History,
+  Edit,
+  Plus,
+  Trash2,
+  Download,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterBuilder, FilterRule, FilterField } from "./FilterBuilder";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -13,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTablePagination } from "@/hooks/useTablePagination";
 
 interface AuditEvent {
   id: string;
@@ -133,6 +154,17 @@ export const AuditGrid = () => {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"my" | "all">("all");
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
+  const {
+    pagination,
+    setTotalCount,
+    nextPage,
+    prevPage,
+    firstPage,
+    lastPage,
+    setPageSize,
+    goToPage,
+    resetToFirstPage,
+  } = useTablePagination(10);
 
   const currentUser = "john.doe@hsbc.com";
 
@@ -146,10 +178,104 @@ export const AuditGrid = () => {
     setExpandedEvents(newExpanded);
   };
 
-  const filteredEvents = mockAuditEvents.filter((event) => {
-    if (viewMode === "my" && event.userId !== currentUser) return false;
-    return true;
-  });
+  const filteredEvents = useMemo(() => {
+    const filteredByView = mockAuditEvents.filter((event) => {
+      if (viewMode === "my" && event.userId !== currentUser) return false;
+      return true;
+    });
+
+    if (filterRules.length === 0) {
+      return filteredByView;
+    }
+
+    return filteredByView.filter((event) => {
+      return filterRules.every((rule) => {
+        if (!rule.value || (Array.isArray(rule.value) && rule.value.length === 0)) {
+          return true;
+        }
+
+        const eventValue = (event as unknown as Record<string, unknown>)[rule.field];
+        if (eventValue === undefined || eventValue === null) {
+          return false;
+        }
+
+        const stringValue = String(eventValue).toLowerCase();
+        const ruleValue = Array.isArray(rule.value)
+          ? rule.value.map((val) => val.toLowerCase())
+          : String(rule.value).toLowerCase();
+
+        switch (rule.operator) {
+          case "equals":
+            return Array.isArray(ruleValue) ? ruleValue.includes(stringValue) : stringValue === ruleValue;
+          case "not_equals":
+            return Array.isArray(ruleValue) ? !ruleValue.includes(stringValue) : stringValue !== ruleValue;
+          case "contains":
+            return Array.isArray(ruleValue)
+              ? ruleValue.some((val) => stringValue.includes(val))
+              : stringValue.includes(ruleValue);
+          case "starts_with":
+            return Array.isArray(ruleValue)
+              ? ruleValue.some((val) => stringValue.startsWith(val))
+              : stringValue.startsWith(ruleValue);
+          case "ends_with":
+            return Array.isArray(ruleValue)
+              ? ruleValue.some((val) => stringValue.endsWith(val))
+              : stringValue.endsWith(ruleValue);
+          case "in":
+            return Array.isArray(ruleValue) ? ruleValue.includes(stringValue) : stringValue === ruleValue;
+          case "before": {
+            const eventDate = new Date(eventValue as string);
+            const compareDate = new Date(Array.isArray(ruleValue) ? ruleValue[0] : ruleValue);
+            return eventDate < compareDate;
+          }
+          case "after": {
+            const eventDate = new Date(eventValue as string);
+            const compareDate = new Date(Array.isArray(ruleValue) ? ruleValue[0] : ruleValue);
+            return eventDate > compareDate;
+          }
+          case "between": {
+            const [start, end] = Array.isArray(ruleValue)
+              ? ruleValue
+              : (ruleValue as string).split(",").map((val) => val.trim());
+            if (!start || !end) return true;
+            const eventDate = new Date(eventValue as string);
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            return eventDate >= startDate && eventDate <= endDate;
+          }
+          default:
+            return true;
+        }
+      });
+    });
+  }, [currentUser, filterRules, viewMode]);
+
+  useEffect(() => {
+    resetToFirstPage();
+  }, [viewMode, filterRules, resetToFirstPage]);
+
+  useEffect(() => {
+    setTotalCount(filteredEvents.length);
+  }, [filteredEvents.length, setTotalCount]);
+
+  useEffect(() => {
+    if (filteredEvents.length === 0 && pagination.page !== 1) {
+      firstPage();
+      return;
+    }
+
+    if (pagination.totalPages > 0 && pagination.page > pagination.totalPages) {
+      goToPage(pagination.totalPages);
+    }
+  }, [filteredEvents.length, firstPage, goToPage, pagination.page, pagination.totalPages]);
+
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (pagination.page - 1) * pagination.pageSize;
+    return filteredEvents.slice(startIndex, startIndex + pagination.pageSize);
+  }, [filteredEvents, pagination.page, pagination.pageSize]);
+
+  const pageStart = filteredEvents.length === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const pageEnd = Math.min(pagination.page * pagination.pageSize, filteredEvents.length);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -225,13 +351,13 @@ export const AuditGrid = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEvents.map((event) => {
+                paginatedEvents.map((event) => {
                   const isExpanded = expandedEvents.has(event.id);
                   const hasChanges = event.changes !== undefined;
 
                   return (
-                    <>
-                      <TableRow key={event.id} className="group">
+                    <Fragment key={event.id}>
+                      <TableRow className="group">
                         <TableCell className="py-2">
                           {hasChanges && (
                             <Button
@@ -272,7 +398,7 @@ export const AuditGrid = () => {
                         </TableCell>
                       </TableRow>
                       {hasChanges && isExpanded && (
-                        <TableRow key={`${event.id}-details`} className="bg-card/50">
+                        <TableRow className="bg-card/50">
                           <TableCell colSpan={6} className="py-3">
                             <div className="grid grid-cols-2 gap-3 pl-8">
                               {event.changes?.before && (
@@ -301,7 +427,7 @@ export const AuditGrid = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })
               )}
@@ -312,7 +438,72 @@ export const AuditGrid = () => {
 
       {/* Compact Footer */}
       <div className="flex-shrink-0 mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}</span>
+        <span>
+          Showing {pageStart}-{pageEnd} of {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}
+        </span>
+        {filteredEvents.length > 0 && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <Select
+                value={pagination.pageSize.toString()}
+                onValueChange={(value) => setPageSize(Number(value))}
+              >
+                <SelectTrigger className="glass border-border h-8 w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass border-border">
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={firstPage}
+                disabled={pagination.page === 1}
+                className="glass-hover border-border h-7 w-7"
+              >
+                <ChevronsLeft className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={prevPage}
+                disabled={pagination.page === 1}
+                className="glass-hover border-border h-7 w-7"
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </Button>
+              <span className="min-w-[80px] text-center">
+                Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={nextPage}
+                disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0}
+                className="glass-hover border-border h-7 w-7"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={lastPage}
+                disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0}
+                className="glass-hover border-border h-7 w-7"
+              >
+                <ChevronsRight className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
