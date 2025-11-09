@@ -2,7 +2,7 @@
  * Metadata-driven dynamic table component with inline editing
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Edit2, Trash2, MoreHorizontal, Upload, Plus, History, Loader2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InlineEditCell } from "./InlineEditCell";
 import { OCCConflictModal } from "./OCCConflictModal";
-import { EntityMetadata, EntityRow, OCCConflict } from "@/types/metadata";
+import type { EntityMetadata, EntityRow, MetadataValue, OCCConflict } from "@/types/metadata";
 import { MetadataApiService } from "@/services/mockMetadataApi";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -50,18 +50,14 @@ export const MetadataDrivenTable = ({
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadData();
-  }, [entityId, country, businessUnit]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [metadataRes, dataRes] = await Promise.all([
         MetadataApiService.getEntityMetadata(entityId, country, businessUnit),
         MetadataApiService.getEntityData(entityId, country, businessUnit, 1, 50),
       ]);
-      
+
       setMetadata(metadataRes);
       setRows(dataRes.rows);
     } catch (error) {
@@ -73,7 +69,11 @@ export const MetadataDrivenTable = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [entityId, country, businessUnit, toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCellEdit = (rowId: string, columnName: string) => {
     if (metadata?.permissions.canEdit) {
@@ -81,7 +81,7 @@ export const MetadataDrivenTable = ({
     }
   };
 
-  const handleCellSave = async (rowId: string, columnName: string, newValue: any) => {
+  const handleCellSave = async (rowId: string, columnName: string, newValue: MetadataValue | undefined) => {
     const row = rows.find((r) => r.id === rowId);
     if (!row) return;
 
@@ -143,14 +143,14 @@ export const MetadataDrivenTable = ({
     }
   };
 
-  const formatCellValue = (value: any, dataType: string) => {
+  const formatCellValue = (value: MetadataValue | undefined, dataType: string) => {
     if (value === null || value === undefined) return "-";
-    
+
     switch (dataType) {
       case "BOOLEAN":
-        return value ? "Yes" : "No";
+        return value === true ? "Yes" : "No";
       case "DATE":
-        return new Date(value).toLocaleDateString();
+        return typeof value === "string" ? new Date(value).toLocaleDateString() : "-";
       default:
         return String(value);
     }
@@ -206,8 +206,8 @@ export const MetadataDrivenTable = ({
             <Upload className="w-4 h-4 mr-2" />
             Bulk Upload
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="glass-hover border-border"
             onClick={handleDownloadTemplate}
           >
@@ -235,13 +235,13 @@ export const MetadataDrivenTable = ({
               <TableRow className="border-border hover:bg-transparent">
                 {metadata.columns.map((column) => {
                   // Identify primary key: first column that is non-editable and required
-                  const isPrimaryKey = !column.editable && column.required && 
-                    metadata.columns.findIndex(col => !col.editable && col.required) === 
+                  const isPrimaryKey = !column.editable && column.required &&
+                    metadata.columns.findIndex(col => !col.editable && col.required) ===
                     metadata.columns.findIndex(col => col.name === column.name);
-                  
+
                   return (
-                    <TableHead 
-                      key={column.name} 
+                    <TableHead
+                      key={column.name}
                       className="font-bold"
                     >
                       <div className="flex items-center gap-2">

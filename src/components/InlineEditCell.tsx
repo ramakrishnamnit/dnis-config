@@ -10,25 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
-import { ColumnMetadata } from "@/types/metadata";
+import { ColumnMetadata, MetadataValue } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
 interface InlineEditCellProps {
-  value: any;
+  value: MetadataValue | undefined;
   column: ColumnMetadata;
-  onSave: (newValue: any) => void;
+  onSave: (newValue: MetadataValue | undefined) => void;
   onCancel: () => void;
 }
 
 export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCellProps) => {
-  const [editValue, setEditValue] = useState(value);
+  const [editValue, setEditValue] = useState<MetadataValue | undefined>(value);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setEditValue(value);
   }, [value]);
 
-  const validate = (val: any): boolean => {
+  const validate = (val: MetadataValue | undefined): boolean => {
     setError(null);
 
     if (column.required && (val === null || val === undefined || val === "")) {
@@ -36,12 +36,12 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
       return false;
     }
 
-    if (column.dataType === "STRING" && column.maxLength && val.length > column.maxLength) {
+  if (column.dataType === "STRING" && typeof val === "string" && column.maxLength && val.length > column.maxLength) {
       setError(`Maximum length is ${column.maxLength} characters`);
       return false;
     }
 
-    if (column.dataType === "NUMBER" && isNaN(Number(val))) {
+  if (column.dataType === "NUMBER" && (typeof val !== "number" && isNaN(Number(val)))) {
       setError("Please enter a valid number");
       return false;
     }
@@ -70,17 +70,17 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
         return (
           <div className="flex items-center gap-2 px-3 py-2">
             <Switch
-              checked={editValue}
-              onCheckedChange={setEditValue}
+              checked={editValue === true}
+              onCheckedChange={(checked) => setEditValue(checked)}
               className="data-[state=checked]:bg-primary"
             />
-            <span className="text-sm text-foreground">{editValue ? "Yes" : "No"}</span>
+            <span className="text-sm text-foreground">{editValue === true ? "Yes" : "No"}</span>
           </div>
         );
 
       case "ENUM":
         return (
-          <Select value={editValue} onValueChange={setEditValue}>
+          <Select value={typeof editValue === "string" ? editValue : ""} onValueChange={setEditValue}>
             <SelectTrigger className="glass border-primary focus:ring-primary">
               <SelectValue />
             </SelectTrigger>
@@ -98,7 +98,7 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
         return (
           <Input
             type="number"
-            value={editValue}
+            value={editValue ?? ""}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             className={cn(
@@ -112,7 +112,7 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
       case "DATE":
         return (
           <DatePicker
-            date={editValue}
+            date={typeof editValue === "string" ? editValue : undefined}
             onDateChange={(date) => setEditValue(date ? date.toISOString() : "")}
             className={cn(
               "border-primary focus:ring-primary focus:glow-red",
@@ -125,7 +125,7 @@ export const InlineEditCell = ({ value, column, onSave, onCancel }: InlineEditCe
         return (
           <Input
             type="text"
-            value={editValue}
+            value={typeof editValue === "string" ? editValue : ""}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={column.maxLength}

@@ -2,6 +2,8 @@
  * Type definitions for dynamic table configuration and data
  */
 
+import type { MetadataRecord } from "./metadata";
+
 // Column configuration received from backend
 export interface ColumnConfig {
   key: string;
@@ -12,8 +14,8 @@ export interface ColumnConfig {
   isFilterable: boolean;
 }
 
-// Generic record that can have any fields
-export type DynamicRecord = Record<string, any>;
+// Generic record that can have metadata-driven fields
+export type DynamicRecord = MetadataRecord;
 
 // Pagination information
 export interface PaginationInfo {

@@ -25,18 +25,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { EntityMetadata } from "@/types/metadata";
+import type { EntityMetadata, MetadataRecord } from "@/types/metadata";
 import { generateBulkUploadTemplate, generateSampleTemplate } from "@/utils/excelGenerator";
 import { parseExcelFile, validateRows, generateErrorReport, type ValidationResult } from "@/utils/excelParser";
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
+import type { BulkUploadResponse } from "@/types/api";
 
 interface BulkUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   metadata: EntityMetadata | null;
   entityName: string;
-  onUpload: (rows: Record<string, any>[], editReason: string) => Promise<{ successCount: number; failureCount: number; results: any[] }>;
+  onUpload: (rows: MetadataRecord[], editReason: string) => Promise<BulkUploadResponse>;
 }
 
 type UploadStep = "select_file" | "validating" | "review" | "uploading" | "complete";
@@ -52,7 +53,7 @@ export const BulkUploadModal = ({
   const [file, setFile] = useState<File | null>(null);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadResult, setUploadResult] = useState<{ successCount: number; failureCount: number } | null>(null);
+  const [uploadResult, setUploadResult] = useState<BulkUploadResponse | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

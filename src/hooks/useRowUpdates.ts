@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from "react";
 import type { RowEditState, ValidationError, ValidationResult } from "@/types/editState";
-import type { EntityMetadata } from "@/types/metadata";
+import type { EntityMetadata, MetadataRecord, MetadataValue } from "@/types/metadata";
 import type { EntityRowResponse } from "@/types/api";
 
 export function useRowUpdates(metadata: EntityMetadata | null) {
@@ -14,7 +14,7 @@ export function useRowUpdates(metadata: EntityMetadata | null) {
    * Set a pending edit for a specific cell
    */
   const setPendingEdit = useCallback(
-    (rowId: string, columnName: string, newValue: any, version: number) => {
+    (rowId: string, columnName: string, newValue: MetadataValue | undefined, version: number) => {
       setPendingEdits((prev) => {
         const newMap = new Map(prev);
         const existingEdit = newMap.get(rowId);
@@ -66,7 +66,7 @@ export function useRowUpdates(metadata: EntityMetadata | null) {
    * Get edits for a specific row
    */
   const getRowEdits = useCallback(
-    (rowId: string): Record<string, any> | null => {
+    (rowId: string): MetadataRecord | null => {
       const edit = pendingEdits.get(rowId);
       return edit?.changes || null;
     },
@@ -131,7 +131,7 @@ export function useRowUpdates(metadata: EntityMetadata | null) {
       }
 
       // Merge current data with pending changes
-      const mergedData = { ...currentData, ...edit.changes };
+      const mergedData: MetadataRecord = { ...currentData, ...edit.changes };
 
       // Validate each changed field
       Object.entries(edit.changes).forEach(([columnName, newValue]) => {
@@ -154,31 +154,39 @@ export function useRowUpdates(metadata: EntityMetadata | null) {
 
         // Data type specific validation
         switch (column.dataType) {
-          case "STRING":
-            if (column.maxLength && String(newValue).length > column.maxLength) {
+          case "STRING": {
+            const valueLength = String(newValue).length;
+            if (column.maxLength && valueLength > column.maxLength) {
               errors.push({
                 field: columnName,
                 message: `${column.label} must be at most ${column.maxLength} characters`,
               });
             }
             break;
+          }
 
-          case "NUMBER":
-            if (isNaN(Number(newValue))) {
+          case "NUMBER": {
+            const numericValue = typeof newValue === "number" ? newValue : Number(newValue);
+            if (Number.isNaN(numericValue)) {
               errors.push({
                 field: columnName,
                 message: `${column.label} must be a valid number`,
               });
             }
             break;
+          }
 
-          case "ENUM":
+          case "ENUM": {
             if (column.enumValues && !column.enumValues.includes(String(newValue))) {
               errors.push({
                 field: columnName,
                 message: `${column.label} must be one of: ${column.enumValues.join(", ")}`,
               });
             }
+            break;
+          }
+
+          default:
             break;
         }
       });

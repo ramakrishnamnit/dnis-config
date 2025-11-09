@@ -22,14 +22,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
-import type { EntityMetadata } from "@/types/metadata";
+import type { ColumnMetadata, EntityMetadata, MetadataRecord, MetadataValue } from "@/types/metadata";
 import { cn } from "@/lib/utils";
 
 interface AddRowModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   metadata: EntityMetadata | null;
-  onSubmit: (data: Record<string, any>, editReason: string) => Promise<void>;
+  onSubmit: (data: MetadataRecord, editReason: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -45,7 +45,7 @@ export const AddRowModal = ({
   onSubmit,
   isLoading = false,
 }: AddRowModalProps) => {
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<MetadataRecord>({});
   const [editReason, setEditReason] = useState("");
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -53,7 +53,7 @@ export const AddRowModal = ({
   // Reset form when modal opens/closes
   useEffect(() => {
     if (open && metadata) {
-      const initialData: Record<string, any> = {};
+      const initialData: MetadataRecord = {};
       metadata.columns.forEach((col) => {
         if (col.defaultValue !== undefined) {
           initialData[col.name] = col.defaultValue;
@@ -72,7 +72,7 @@ export const AddRowModal = ({
     }
   }, [open, metadata]);
 
-  const validateField = (fieldName: string, value: any): string | null => {
+  const validateField = (fieldName: string, value: MetadataValue | undefined): string | null => {
     if (!metadata) return null;
     
     const column = metadata.columns.find((col) => col.name === fieldName);
@@ -136,7 +136,7 @@ export const AddRowModal = ({
     return newErrors.length === 0;
   };
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: MetadataValue | undefined) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
     setTouched((prev) => new Set(prev).add(fieldName));
     
@@ -171,7 +171,8 @@ export const AddRowModal = ({
     return errors.find((e) => e.field === fieldName)?.message;
   };
 
-  const renderField = (column: any) => {
+  const renderField = (column: ColumnMetadata) => {
+    const fieldValue = formData[column.name];
     const fieldError = getFieldError(column.name);
     const showError = touched.has(column.name) && fieldError;
 
@@ -188,7 +189,7 @@ export const AddRowModal = ({
             </div>
             <Switch
               id={column.name}
-              checked={formData[column.name] || false}
+              checked={Boolean(fieldValue)}
               onCheckedChange={(checked) => handleFieldChange(column.name, checked)}
               disabled={isLoading}
             />
@@ -204,7 +205,7 @@ export const AddRowModal = ({
               <Badge variant="outline" className="ml-2 text-xs">ENUM</Badge>
             </Label>
             <Select
-              value={formData[column.name] || ""}
+              value={typeof fieldValue === "string" ? fieldValue : ""}
               onValueChange={(value) => handleFieldChange(column.name, value)}
               disabled={isLoading}
             >
@@ -240,7 +241,11 @@ export const AddRowModal = ({
             <Input
               id={column.name}
               type="number"
-              value={formData[column.name] || ""}
+              value={
+                typeof fieldValue === "number" || typeof fieldValue === "string"
+                  ? fieldValue
+                  : ""
+              }
               onChange={(e) => handleFieldChange(column.name, e.target.value)}
               onBlur={() => handleBlur(column.name)}
               placeholder={`Enter ${column.label}`}
@@ -263,7 +268,7 @@ export const AddRowModal = ({
               <Badge variant="outline" className="ml-2 text-xs">DATE</Badge>
             </Label>
             <DatePicker
-              date={formData[column.name]}
+              date={typeof fieldValue === "string" ? fieldValue : undefined}
               onDateChange={(date) => {
                 handleFieldChange(column.name, date ? date.toISOString() : "");
                 handleBlur(column.name);
@@ -291,7 +296,7 @@ export const AddRowModal = ({
             <Input
               id={column.name}
               type="text"
-              value={formData[column.name] || ""}
+              value={typeof fieldValue === "string" ? fieldValue : ""}
               onChange={(e) => handleFieldChange(column.name, e.target.value)}
               onBlur={() => handleBlur(column.name)}
               placeholder={`Enter ${column.label}`}

@@ -21,9 +21,9 @@ const EXCLUDE_FILES = [
   'package-lock.json',
   'yarn.lock',
   '.gitignore',
-  'synthi-assist-code-documentation.docx',
-  'synthi-assist-code-documentation.html',
-  'synthi-assist-code-documentation.txt'
+  'dnis-config-code-documentation.docx',
+  'dnis-config-code-documentation.html',
+  'dnis-config-code-documentation.txt'
 ];
 
 const EXCLUDE_EXTENSIONS = [
@@ -372,7 +372,7 @@ console.log(`✅ Found ${Object.keys(fileTree).length} files`);
 console.log('📝 Generating Word document...');
 
 const doc = generateWordDocument();
-const outputFile = path.join(projectRoot, 'synthi-assist-code-documentation.docx');
+const outputFile = path.join(projectRoot, 'dnis-config-code-documentation.docx');
 
 // Use the Packer to create the document
 const Packer = docx.Packer;

@@ -4,6 +4,9 @@
 
 export type DataType = "STRING" | "NUMBER" | "BOOLEAN" | "DATE" | "ENUM";
 
+export type MetadataValue = string | number | boolean | null;
+export type MetadataRecord = Record<string, MetadataValue | undefined>;
+
 export interface ColumnMetadata {
   name: string;
   label: string;
@@ -12,7 +15,7 @@ export interface ColumnMetadata {
   required?: boolean;
   maxLength?: number;
   enumValues?: string[];
-  defaultValue?: any;
+  defaultValue?: MetadataValue;
   isFilterable?: boolean;
 }
 
@@ -31,12 +34,11 @@ export interface EntityMetadata {
   permissions: EntityPermissions;
 }
 
-export interface EntityRow {
+export interface EntityRow extends MetadataRecord {
   id: string;
   version: number;
   lastUpdatedBy: string;
   lastUpdatedOn: string;
-  [key: string]: any; // Dynamic fields based on metadata
 }
 
 export interface EntityDataResponse {
@@ -50,7 +52,7 @@ export interface UpdateRowRequest {
   id: string;
   version: number;
   editReason: string;
-  changes: Record<string, any>;
+  changes: MetadataRecord;
 }
 
 export interface OCCConflict {

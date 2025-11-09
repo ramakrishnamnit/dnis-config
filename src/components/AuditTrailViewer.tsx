@@ -21,8 +21,8 @@ interface AuditEvent {
   timestamp: string;
   reason: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
   };
 }
 
@@ -120,7 +120,7 @@ export const AuditTrailViewer = () => {
   const [toDate, setToDate] = useState<string>("");
   
   // Sort states
-  const [sortBy, setSortBy] = useState<string>("timestamp");
+  const [sortBy, setSortBy] = useState<"timestamp" | "action" | "tableName" | "userId">("timestamp");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   
   // Pagination states
@@ -154,26 +154,27 @@ export const AuditTrailViewer = () => {
     });
 
     // Apply sorting
-    return filtered.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof AuditEvent];
-      let bValue: any = b[sortBy as keyof AuditEvent];
+    const sortField = sortBy;
+    const parseSortableValue = (event: AuditEvent): string | number => {
+      if (sortField === "timestamp") {
+        return new Date(event.timestamp).getTime();
+      }
+      const value = event[sortField];
+      return typeof value === "string" ? value.toLowerCase() : String(value);
+    };
 
-      // Handle timestamp sorting
-      if (sortBy === "timestamp") {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+    const sorted = [...filtered].sort((a, b) => {
+      const aValue = parseSortableValue(a);
+      const bValue = parseSortableValue(b);
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return aValue - bValue;
       }
 
-      // String comparison (case-insensitive)
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
+      return String(aValue).localeCompare(String(bValue));
     });
+
+    return sortDirection === "asc" ? sorted : sorted.reverse();
   };
 
   const filteredEvents = applyFiltersAndSort(mockAuditEvents);

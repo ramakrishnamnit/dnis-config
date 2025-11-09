@@ -2,6 +2,8 @@
  * API request/response types matching backend contracts
  */
 
+import type { MetadataRecord, MetadataValue } from "./metadata";
+
 // Metadata API types
 export interface MetadataRequest {
   entityId: string;
@@ -17,7 +19,7 @@ export interface ColumnMetadataResponse {
   required?: boolean;
   maxLength?: number;
   enumValues?: string[];
-  defaultValue?: any;
+  defaultValue?: MetadataValue;
   isFilterable?: boolean;
 }
 
@@ -54,7 +56,7 @@ export interface EntityRowResponse {
   version: number;
   lastUpdatedBy: string;
   lastUpdatedOn: string;
-  [key: string]: any; // Dynamic fields based on metadata
+  [key: string]: MetadataValue | undefined;
 }
 
 export interface DataResponse {
@@ -69,7 +71,7 @@ export interface RowUpdateRequest {
   id: string;
   version: number;
   editReason: string;
-  changes: Record<string, any>;
+  changes: MetadataRecord;
 }
 
 export interface RowUpdateResponse {
@@ -105,7 +107,7 @@ export interface AddRowRequest {
   entityId: string;
   country: string;
   businessUnit: string;
-  data: Record<string, any>;
+  data: MetadataRecord;
   editReason: string;
 }
 
@@ -121,7 +123,7 @@ export interface BulkUploadRequest {
   entityId: string;
   country: string;
   businessUnit: string;
-  rows: Record<string, any>[];
+  rows: MetadataRecord[];
   editReason: string;
 }
 
@@ -150,6 +152,6 @@ export interface DownloadConfigRequest {
 export interface ApiError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 

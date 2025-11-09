@@ -3,13 +3,13 @@
  */
 
 import * as XLSX from "xlsx";
-import type { EntityMetadata } from "@/types/metadata";
+import type { EntityMetadata, MetadataRecord, MetadataValue } from "@/types/metadata";
 import type { ColumnMetadataResponse } from "@/types/api";
 
 export interface ParsedRow {
   rowIndex: number;
-  data: Record<string, any>;
-  raw: any[];
+  data: MetadataRecord;
+  raw: unknown[];
 }
 
 export interface ValidationError {
@@ -21,7 +21,7 @@ export interface ValidationResult {
   rowIndex: number;
   valid: boolean;
   errors: ValidationError[];
-  data: Record<string, any>;
+  data: MetadataRecord;
 }
 
 /**
@@ -41,7 +41,7 @@ export async function parseExcelFile(file: File): Promise<ParsedRow[]> {
         const worksheet = workbook.Sheets[sheetName];
         
         // Convert to JSON (array of arrays)
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1 });
         
         if (jsonData.length < 4) {
           reject(new Error("Invalid template format. Expected at least 4 rows (headers + data types + validation + data)."));
@@ -49,8 +49,8 @@ export async function parseExcelFile(file: File): Promise<ParsedRow[]> {
         }
 
         // Extract headers (row 0), removing asterisks for required fields
-        const headers = jsonData[0].map((h: string) => 
-          String(h).replace(/\s*\*\s*$/, "").trim()
+        const headers = (jsonData[0] ?? []).map((h) =>
+          String(h ?? "").replace(/\s*\*\s*$/, "").trim()
         );
         
         // Parse data rows (starting from row 3, after headers, types, and validation)
@@ -60,21 +60,21 @@ export async function parseExcelFile(file: File): Promise<ParsedRow[]> {
           const row = jsonData[i];
           
           // Skip empty rows
-          if (!row || row.every((cell: any) => !cell && cell !== 0 && cell !== false)) {
+          if (!row || row.every((cell) => cell === undefined || cell === null || cell === "")) {
             continue;
           }
           
           // Create data object
-          const data: Record<string, any> = {};
+          const rowData: MetadataRecord = {};
           headers.forEach((header, index) => {
             if (header) {
-              data[header] = row[index];
+              rowData[header] = row[index] as MetadataValue | undefined;
             }
           });
           
           parsedRows.push({
             rowIndex: i + 1, // 1-indexed for user display
-            data,
+            data: rowData,
             raw: row,
           });
         }
@@ -108,7 +108,7 @@ export function validateRows(
 
   return rows.map((row) => {
     const errors: ValidationError[] = [];
-    const validatedData: Record<string, any> = {};
+    const validatedData: MetadataRecord = {};
 
     // Validate each field
     Object.entries(row.data).forEach(([label, value]) => {
@@ -131,7 +131,7 @@ export function validateRows(
           field: label,
           message: "This field is required",
         });
-        validatedData[fieldName] = value;
+        validatedData[fieldName] = value as MetadataValue | undefined;
         return;
       }
 
@@ -143,7 +143,7 @@ export function validateRows(
 
       // Validate data types
       switch (column.dataType) {
-        case "STRING":
+        case "STRING": {
           const strValue = String(value);
           if (column.maxLength && strValue.length > column.maxLength) {
             errors.push({
@@ -153,10 +153,11 @@ export function validateRows(
           }
           validatedData[fieldName] = strValue;
           break;
+        }
 
-        case "NUMBER":
+        case "NUMBER": {
           const numValue = Number(value);
-          if (isNaN(numValue)) {
+          if (Number.isNaN(numValue)) {
             errors.push({
               field: label,
               message: "Must be a valid number",
@@ -165,8 +166,9 @@ export function validateRows(
             validatedData[fieldName] = numValue;
           }
           break;
+        }
 
-        case "BOOLEAN":
+        case "BOOLEAN": {
           const boolValue = String(value).toUpperCase();
           if (!["TRUE", "FALSE", "YES", "NO", "1", "0"].includes(boolValue)) {
             errors.push({
@@ -177,8 +179,9 @@ export function validateRows(
             validatedData[fieldName] = ["TRUE", "YES", "1"].includes(boolValue);
           }
           break;
+        }
 
-        case "ENUM":
+        case "ENUM": {
           const enumValue = String(value);
           if (column.enumValues && !column.enumValues.includes(enumValue)) {
             errors.push({
@@ -189,11 +192,12 @@ export function validateRows(
             validatedData[fieldName] = enumValue;
           }
           break;
+        }
 
-        case "DATE":
+        case "DATE": {
           // Try to parse date
-          const dateValue = new Date(value);
-          if (isNaN(dateValue.getTime())) {
+          const dateValue = new Date(value as string);
+          if (Number.isNaN(dateValue.getTime())) {
             errors.push({
               field: label,
               message: "Must be a valid date (YYYY-MM-DD)",
@@ -202,9 +206,10 @@ export function validateRows(
             validatedData[fieldName] = dateValue.toISOString().split("T")[0];
           }
           break;
+        }
 
         default:
-          validatedData[fieldName] = value;
+          validatedData[fieldName] = value as MetadataValue;
       }
     });
 
@@ -238,7 +243,7 @@ export function generateErrorReport(
 ): Blob {
   const failedRows = results.filter((r) => !r.valid);
   
-  const worksheetData: any[][] = [];
+  const worksheetData: Array<Array<string | number>> = [];
   
   // Headers
   worksheetData.push(["Row Number", "Field", "Error Message", "Data"]);

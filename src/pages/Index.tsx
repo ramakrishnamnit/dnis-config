@@ -16,7 +16,7 @@ import { useRowUpdates } from "@/hooks/useRowUpdates";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { configApiService } from "@/services/apiToggle";
 import { useToast } from "@/hooks/use-toast";
-import type { EntityMetadata } from "@/types/metadata";
+import type { EntityMetadata, MetadataRecord } from "@/types/metadata";
 import type { EntityRowResponse, DataRequest } from "@/types/api";
 import {
   ChevronLeft,
@@ -84,6 +84,7 @@ const Index = () => {
 
   // Row updates management
   const rowUpdates = useRowUpdates(metadata);
+  const { clearAllEdits } = rowUpdates;
 
   const filterFields = useMemo<FilterField[]>(() => {
     if (!metadata) return [];
@@ -142,21 +143,7 @@ const Index = () => {
   const { toast } = useToast();
   const selectedTable = mockTables.find((t) => t.id === selectedTableId);
 
-  // Fetch metadata when table is selected
-  useEffect(() => {
-    if (selectedTableId && country && businessUnit) {
-      loadMetadata();
-    }
-  }, [selectedTableId, country, businessUnit]);
-
-  // Fetch data when metadata loads or filters/pagination change
-  useEffect(() => {
-    if (metadata && country && businessUnit) {
-      loadData();
-    }
-  }, [metadata, pagination.page, pagination.pageSize, globalSearch, columnFilters, advancedFilters, country, businessUnit]);
-
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     if (!selectedTableId) return;
 
     setIsLoadingMetadata(true);
@@ -167,7 +154,7 @@ const Index = () => {
         businessUnit
       );
       setMetadata(metadataResponse);
-      rowUpdates.clearAllEdits();
+      clearAllEdits();
     } catch (error) {
       toast({
         title: "Error",
@@ -177,9 +164,16 @@ const Index = () => {
     } finally {
       setIsLoadingMetadata(false);
     }
-  };
+  }, [businessUnit, clearAllEdits, country, selectedTableId, toast]);
 
-  const loadData = async () => {
+  // Fetch metadata when table is selected
+  useEffect(() => {
+    if (selectedTableId && country && businessUnit) {
+      loadMetadata();
+    }
+  }, [businessUnit, country, loadMetadata, selectedTableId]);
+
+  const loadData = useCallback(async () => {
     if (!selectedTableId || !metadata) return;
 
     setIsLoadingData(true);
@@ -197,7 +191,6 @@ const Index = () => {
         },
       };
 
-      console.log('Loading data with filters:', request.filters);
       const dataResponse = await configApiService.getEntityData(request);
       setRows(dataResponse.rows);
       setTotalCount(dataResponse.totalCount);
@@ -210,7 +203,14 @@ const Index = () => {
     } finally {
       setIsLoadingData(false);
     }
-  };
+  }, [advancedFilters, businessUnit, columnFilters, country, globalSearch, metadata, pagination.page, pagination.pageSize, selectedTableId, setTotalCount, toast]);
+
+  // Fetch data when metadata loads or filters/pagination change
+  useEffect(() => {
+    if (metadata && country && businessUnit) {
+      loadData();
+    }
+  }, [businessUnit, country, loadData, metadata]);
 
   const handleGlobalSearch = useCallback((query: string) => {
     setGlobalSearch(query);
@@ -225,7 +225,6 @@ const Index = () => {
       } else {
         delete newFilters[columnName];
       }
-      console.log('Column filter updated:', columnName, '=', value, 'All filters:', newFilters);
       return newFilters;
     });
     resetToFirstPage();
@@ -323,7 +322,7 @@ const Index = () => {
     }
   };
 
-  const handleAddRow = async (data: Record<string, any>, editReason: string) => {
+  const handleAddRow = async (data: MetadataRecord, editReason: string) => {
     if (!selectedTableId) return;
 
     try {
@@ -352,7 +351,7 @@ const Index = () => {
     }
   };
 
-  const handleBulkUpload = async (uploadRows: Record<string, any>[], editReason: string) => {
+  const handleBulkUpload = async (uploadRows: MetadataRecord[], editReason: string) => {
     if (!selectedTableId) return { successCount: 0, failureCount: 0, results: [] };
 
     try {

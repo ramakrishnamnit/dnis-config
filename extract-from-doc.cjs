@@ -4,7 +4,7 @@ const path = require('path');
 console.log('📄 Project Restoration Tool\n');
 
 // Check if Word document exists
-const docxFile = 'synthi-assist-code-documentation.docx';
+const docxFile = 'dnis-config-code-documentation.docx';
 if (!fs.existsSync(docxFile)) {
   console.log(`❌ Error: ${docxFile} not found`);
   console.log('\n📋 Steps to create it:');
@@ -57,15 +57,15 @@ function extractUsingMammoth(mammoth) {
 }
 
 function extractUsingTextFile() {
-  const textFile = 'synthi-assist-code-documentation.txt';
+  const textFile = 'dnis-config-code-documentation.txt';
   
   if (!fs.existsSync(textFile)) {
     console.log('❌ Alternative method requires text file');
     console.log('\n📋 Steps to create it:');
-    console.log('1. Open synthi-assist-code-documentation.docx in Microsoft Word');
+    console.log('1. Open dnis-config-code-documentation.docx in Microsoft Word');
     console.log('2. Go to File → Save As');
     console.log('3. Choose "Plain Text (.txt)" format');
-    console.log('4. Save as "synthi-assist-code-documentation.txt"');
+    console.log('4. Save as "dnis-config-code-documentation.txt"');
     console.log('5. Run this script again\n');
     console.log('💡 Or install mammoth package: npm install mammoth\n');
     process.exit(1);

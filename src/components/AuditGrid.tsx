@@ -12,6 +12,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,8 +47,8 @@ interface AuditEvent {
   timestamp: string;
   reason: string;
   changes?: {
-    before?: any;
-    after?: any;
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
   };
 }
 
@@ -154,6 +157,8 @@ export const AuditGrid = () => {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"my" | "all">("all");
   const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
+  const [sortColumn, setSortColumn] = useState<"action" | "tableName" | "userName" | "timestamp" | "reason" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
   const {
     pagination,
     setTotalCount,
@@ -250,16 +255,46 @@ export const AuditGrid = () => {
     });
   }, [currentUser, filterRules, viewMode]);
 
+  const sortedEvents = useMemo(() => {
+    if (!sortColumn || !sortDirection) {
+      return filteredEvents;
+    }
+
+    return [...filteredEvents].sort((a, b) => {
+      const getComparableValue = (event: AuditEvent) => {
+        if (sortColumn === "timestamp") {
+          return new Date(event.timestamp).getTime();
+        }
+        const value = event[sortColumn];
+        return typeof value === "number" ? value : String(value ?? "").toLowerCase();
+      };
+
+      const aValue = getComparableValue(a);
+      const bValue = getComparableValue(b);
+
+      if (aValue === bValue) return 0;
+
+      if (aValue == null) return sortDirection === "asc" ? 1 : -1;
+      if (bValue == null) return sortDirection === "asc" ? -1 : 1;
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      return aValue < bValue ? (sortDirection === "asc" ? -1 : 1) : (sortDirection === "asc" ? 1 : -1);
+    });
+  }, [filteredEvents, sortColumn, sortDirection]);
+
   useEffect(() => {
     resetToFirstPage();
   }, [viewMode, filterRules, resetToFirstPage]);
 
   useEffect(() => {
-    setTotalCount(filteredEvents.length);
-  }, [filteredEvents.length, setTotalCount]);
+    setTotalCount(sortedEvents.length);
+  }, [setTotalCount, sortedEvents.length]);
 
   useEffect(() => {
-    if (filteredEvents.length === 0 && pagination.page !== 1) {
+    if (sortedEvents.length === 0 && pagination.page !== 1) {
       firstPage();
       return;
     }
@@ -267,15 +302,43 @@ export const AuditGrid = () => {
     if (pagination.totalPages > 0 && pagination.page > pagination.totalPages) {
       goToPage(pagination.totalPages);
     }
-  }, [filteredEvents.length, firstPage, goToPage, pagination.page, pagination.totalPages]);
+  }, [firstPage, goToPage, pagination.page, pagination.totalPages, sortedEvents.length]);
 
   const paginatedEvents = useMemo(() => {
     const startIndex = (pagination.page - 1) * pagination.pageSize;
-    return filteredEvents.slice(startIndex, startIndex + pagination.pageSize);
-  }, [filteredEvents, pagination.page, pagination.pageSize]);
+    return sortedEvents.slice(startIndex, startIndex + pagination.pageSize);
+  }, [sortedEvents, pagination.page, pagination.pageSize]);
 
-  const pageStart = filteredEvents.length === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
-  const pageEnd = Math.min(pagination.page * pagination.pageSize, filteredEvents.length);
+  const pageStart = sortedEvents.length === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const pageEnd = Math.min(pagination.page * pagination.pageSize, sortedEvents.length);
+
+  const handleSort = (column: "action" | "tableName" | "userName" | "timestamp" | "reason") => {
+    if (sortColumn === column) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortColumn(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const renderSortIcon = (column: "action" | "tableName" | "userName" | "timestamp" | "reason") => {
+    if (sortColumn !== column || !sortDirection) {
+      return <ArrowUpDown className="w-3 h-3 text-muted-foreground" />;
+    }
+
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-3 h-3 text-primary" />
+    ) : (
+      <ArrowDown className="w-3 h-3 text-primary" />
+    );
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -333,15 +396,55 @@ export const AuditGrid = () => {
             <TableHeader className="sticky top-0 glass-strong z-10">
               <TableRow>
                 <TableHead className="h-9 text-xs w-12"></TableHead>
-                <TableHead className="h-9 text-xs">Action</TableHead>
-                <TableHead className="h-9 text-xs">Table</TableHead>
-                <TableHead className="h-9 text-xs">User</TableHead>
-                <TableHead className="h-9 text-xs">Timestamp</TableHead>
-                <TableHead className="h-9 text-xs">Reason</TableHead>
+                <TableHead
+                  className="h-9 text-xs cursor-pointer select-none"
+                  onClick={() => handleSort("action")}
+                >
+                  <span className="flex items-center gap-1">
+                    Action
+                    {renderSortIcon("action")}
+                  </span>
+                </TableHead>
+                <TableHead
+                  className="h-9 text-xs cursor-pointer select-none"
+                  onClick={() => handleSort("tableName")}
+                >
+                  <span className="flex items-center gap-1">
+                    Table
+                    {renderSortIcon("tableName")}
+                  </span>
+                </TableHead>
+                <TableHead
+                  className="h-9 text-xs cursor-pointer select-none"
+                  onClick={() => handleSort("userName")}
+                >
+                  <span className="flex items-center gap-1">
+                    User
+                    {renderSortIcon("userName")}
+                  </span>
+                </TableHead>
+                <TableHead
+                  className="h-9 text-xs cursor-pointer select-none"
+                  onClick={() => handleSort("timestamp")}
+                >
+                  <span className="flex items-center gap-1">
+                    Timestamp
+                    {renderSortIcon("timestamp")}
+                  </span>
+                </TableHead>
+                <TableHead
+                  className="h-9 text-xs cursor-pointer select-none"
+                  onClick={() => handleSort("reason")}
+                >
+                  <span className="flex items-center gap-1">
+                    Reason
+                    {renderSortIcon("reason")}
+                  </span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEvents.length === 0 ? (
+              {sortedEvents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center">
@@ -439,9 +542,9 @@ export const AuditGrid = () => {
       {/* Compact Footer */}
       <div className="flex-shrink-0 mt-2 flex items-center justify-between text-[11px] text-muted-foreground py-1">
         <span>
-          Showing {pageStart}-{pageEnd} of {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""}
+              Showing {pageStart}-{pageEnd} of {sortedEvents.length} event{sortedEvents.length !== 1 ? "s" : ""}
         </span>
-        {filteredEvents.length > 0 && (
+            {sortedEvents.length > 0 && (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="text-[11px]">Rows per page:</span>

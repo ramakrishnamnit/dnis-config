@@ -36,7 +36,7 @@ export function generateBulkUploadTemplate(
     }));
 
   // Create worksheet data
-  const worksheetData: any[][] = [];
+  const worksheetData: Array<Array<string | number>> = [];
 
   // Row 1: Column headers (labels)
   const headers = templateColumns.map((col) =>
@@ -170,7 +170,7 @@ export function generateSampleTemplate(
       enumValues: col.enumValues,
     }));
 
-  const worksheetData: any[][] = [];
+  const worksheetData: Array<Array<string | number>> = [];
 
   // Headers
   const headers = templateColumns.map((col) =>
@@ -245,7 +245,7 @@ export function generateSimpleTemplate(
     enumValues: col.enumValues,
   }));
 
-  const worksheetData: any[][] = [];
+  const worksheetData: Array<Array<string | number>> = [];
 
   // Row 1: Column headers (just the labels, all columns)
   const headers = allColumns.map((col) => col.label);
@@ -295,7 +295,11 @@ export function generateSimpleTemplate(
   // Create workbook with sheet name as table name
   const workbook = XLSX.utils.book_new();
   // Clean the table name to be valid for Excel sheet name
-  const sheetName = tableName.replace(/[:\\/?*\[\]]/g, "_").substring(0, 31);
+  const invalidSheetChars = [":", "\\", "/", "?", "*", "[", "]"];
+  const sheetName = invalidSheetChars.reduce(
+    (name, char) => name.split(char).join("_"),
+    tableName,
+  ).substring(0, 31);
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
   // Generate filename with timestamp

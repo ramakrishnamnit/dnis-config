@@ -297,7 +297,7 @@ export class MetadataApiService {
   static async downloadConfig(
     entityId: string,
     format: "csv" | "json" | "excel",
-    filters?: Record<string, any>
+    filters?: Record<string, string>
   ): Promise<Blob> {
     await delay(800);
     

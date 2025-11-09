@@ -2,19 +2,21 @@
  * Type definitions for tracking pending edits state
  */
 
+import type { MetadataRecord, MetadataValue } from "./metadata";
+
 export type EditStatus = "pending" | "saving" | "saved" | "error";
 
 export interface PendingEdit {
   rowId: string;
   columnName: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: MetadataValue | undefined;
+  newValue: MetadataValue | undefined;
   timestamp: number;
 }
 
 export interface RowEditState {
   rowId: string;
-  changes: Record<string, any>; // columnName -> newValue
+  changes: MetadataRecord; // columnName -> newValue
   status: EditStatus;
   error?: string;
   version: number;

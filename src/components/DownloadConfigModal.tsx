@@ -45,6 +45,8 @@ const tables = [
   { value: "UKCC_USERS", label: "User Management" },
 ];
 
+type DownloadScope = "search" | "selected" | "all";
+
 interface DownloadConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,7 +62,7 @@ export const DownloadConfigModal = ({
   businessUnit,
   hasSearchFilter,
 }: DownloadConfigModalProps) => {
-  const [downloadScope, setDownloadScope] = useState<"search" | "selected" | "all">("selected");
+  const [downloadScope, setDownloadScope] = useState<DownloadScope>("selected");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -124,11 +126,21 @@ export const DownloadConfigModal = ({
     switch (downloadScope) {
       case "search":
         return "Download filtered results based on current search and column filters";
-      case "selected":
-        const countryText = selectedCountry === "ALL" ? "All countries" : countries.find(c => c.value === selectedCountry)?.label;
-        const buText = selectedBusinessUnit === "ALL" ? "All business units" : businessUnits.find(bu => bu.value === selectedBusinessUnit)?.label;
-        const tableText = selectedTable === "ALL" ? "All tables" : tables.find(t => t.value === selectedTable)?.label;
+      case "selected": {
+        const countryText =
+          selectedCountry === "ALL"
+            ? "All countries"
+            : countries.find((c) => c.value === selectedCountry)?.label;
+        const buText =
+          selectedBusinessUnit === "ALL"
+            ? "All business units"
+            : businessUnits.find((bu) => bu.value === selectedBusinessUnit)?.label;
+        const tableText =
+          selectedTable === "ALL"
+            ? "All tables"
+            : tables.find((t) => t.value === selectedTable)?.label;
         return `Download configuration data for ${countryText}, ${buText}, and ${tableText}`;
+      }
       case "all":
         return "Download all configuration data for all countries, business units, and tables";
       default:
@@ -164,7 +176,10 @@ export const DownloadConfigModal = ({
             {/* Download Scope */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-foreground">Download Scope</Label>
-              <RadioGroup value={downloadScope} onValueChange={(value: any) => setDownloadScope(value)}>
+              <RadioGroup
+                value={downloadScope}
+                onValueChange={(value) => setDownloadScope(value as DownloadScope)}
+              >
                 <div className="glass-hover rounded-lg p-4 border border-border">
                   <div className="flex items-start space-x-3">
                     <RadioGroupItem value="search" id="search" disabled={!hasSearchFilter} />

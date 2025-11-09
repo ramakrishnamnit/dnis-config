@@ -22,20 +22,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DatePicker } from "@/components/ui/date-picker";
-import type { EntityMetadata } from "@/types/metadata";
+import type { EntityMetadata, ColumnMetadata, MetadataRecord, MetadataValue } from "@/types/metadata";
 import type { EntityRowResponse } from "@/types/api";
-import type { ValidationResult } from "@/types/editState";
+import type { RowEditState, ValidationResult } from "@/types/editState";
 import { cn } from "@/lib/utils";
 
 interface DynamicEditableTableProps {
   metadata: EntityMetadata;
   rows: EntityRowResponse[];
   isLoading?: boolean;
-  pendingEdits: Map<string, { changes: Record<string, any>; status: string }>;
-  onCellEdit: (rowId: string, columnName: string, newValue: any, version: number) => void;
+  pendingEdits: Map<string, RowEditState>;
+  onCellEdit: (rowId: string, columnName: string, newValue: MetadataValue | undefined, version: number) => void;
   onRowUpdate: (rowId: string) => void;
   hasRowChanges: (rowId: string) => boolean;
-  getRowEdits: (rowId: string) => Record<string, any> | null;
+  getRowEdits: (rowId: string) => MetadataRecord | null;
   validateRow: (rowId: string, row: EntityRowResponse) => ValidationResult;
   columnFilters?: Record<string, string>;
   onFilterChange?: (columnName: string, value: string) => void;
@@ -57,14 +57,14 @@ export const DynamicEditableTable = ({
   onFilterChange,
 }: DynamicEditableTableProps) => {
   const [editingCell, setEditingCell] = useState<{ rowId: string; columnName: string } | null>(null);
-  const [editValue, setEditValue] = useState<any>(null);
+  const [editValue, setEditValue] = useState<MetadataValue | undefined>(undefined);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   // Start editing a cell
-  const handleStartEdit = useCallback((rowId: string, columnName: string, currentValue: any) => {
+  const handleStartEdit = useCallback((rowId: string, columnName: string, currentValue: MetadataValue | undefined) => {
     setEditingCell({ rowId, columnName });
-    setEditValue(currentValue);
+    setEditValue(currentValue ?? "");
   }, []);
 
   // Cancel editing
@@ -78,7 +78,7 @@ export const DynamicEditableTable = ({
     if (editingCell && editingCell.rowId === rowId && editingCell.columnName === columnName) {
       onCellEdit(rowId, columnName, editValue, version);
       setEditingCell(null);
-      setEditValue(null);
+      setEditValue(undefined);
     }
   }, [editingCell, editValue, onCellEdit]);
 
@@ -93,14 +93,14 @@ export const DynamicEditableTable = ({
   }, [handleSaveEdit, handleCancelEdit]);
 
   // Format cell value for display
-  const formatCellValue = useCallback((value: any, dataType: string) => {
+  const formatCellValue = useCallback((value: MetadataValue | undefined, dataType: string) => {
     if (value === null || value === undefined) return "-";
     
     switch (dataType) {
       case "BOOLEAN":
-        return value ? "Yes" : "No";
+        return value === true ? "Yes" : "No";
       case "DATE":
-        return new Date(value).toLocaleDateString();
+        return typeof value === "string" ? new Date(value).toLocaleDateString() : "-";
       case "NUMBER":
         return typeof value === "number" ? value.toLocaleString() : value;
       default:
@@ -109,28 +109,34 @@ export const DynamicEditableTable = ({
   }, []);
 
   // Render edit input based on data type
-  const renderEditInput = useCallback((column: any, value: any, onChange: (val: any) => void, onKeyDown: (e: React.KeyboardEvent) => void) => {
+  const renderEditInput = useCallback(
+    (
+      column: ColumnMetadata,
+      value: MetadataValue | undefined,
+      onChange: (val: MetadataValue | undefined) => void,
+      onKeyDown: (e: React.KeyboardEvent) => void
+    ) => {
     switch (column.dataType) {
       case "BOOLEAN":
         return (
           <div className="flex items-center gap-2 px-2">
             <Switch
-              checked={value}
-              onCheckedChange={onChange}
+              checked={value === true}
+              onCheckedChange={(checked) => onChange(checked)}
               className="data-[state=checked]:bg-primary"
             />
-            <span className="text-xs">{value ? "Yes" : "No"}</span>
+            <span className="text-xs">{value === true ? "Yes" : "No"}</span>
           </div>
         );
 
       case "ENUM":
         return (
-          <Select value={value} onValueChange={onChange}>
+          <Select value={typeof value === "string" ? value : ""} onValueChange={onChange}>
             <SelectTrigger className="h-8 glass border-primary focus:ring-primary">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="glass border-border">
-              {column.enumValues?.map((option: string) => (
+              {column.enumValues?.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
                 </SelectItem>
@@ -143,7 +149,7 @@ export const DynamicEditableTable = ({
         return (
           <Input
             type="number"
-            value={value || ""}
+            value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
             className="h-8 glass border-primary focus:ring-primary focus:glow-red"
@@ -154,7 +160,7 @@ export const DynamicEditableTable = ({
       case "DATE":
         return (
           <DatePicker
-            date={value}
+            date={typeof value === "string" ? value : undefined}
             onDateChange={(date) => onChange(date ? date.toISOString() : "")}
             className="h-8 border-primary focus:ring-primary focus:glow-red"
           />
@@ -164,7 +170,7 @@ export const DynamicEditableTable = ({
         return (
           <Input
             type="text"
-            value={value || ""}
+            value={typeof value === "string" ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
             maxLength={column.maxLength}
@@ -173,7 +179,8 @@ export const DynamicEditableTable = ({
           />
         );
     }
-  }, []);
+  },
+  []);
 
   // Handle column sorting
   const handleSort = useCallback((columnName: string) => {
@@ -222,7 +229,7 @@ export const DynamicEditableTable = ({
   }, [rows, sortColumn, sortDirection]);
 
   // Render table cell content
-  const renderCellContent = useCallback((row: EntityRowResponse, column: any) => {
+  const renderCellContent = useCallback((row: EntityRowResponse, column: ColumnMetadata) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.columnName === column.name;
     const edits = getRowEdits(row.id);
     const currentValue = edits?.[column.name] !== undefined ? edits[column.name] : row[column.name];

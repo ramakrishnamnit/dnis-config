@@ -130,14 +130,14 @@ export const AudioAssetManager = () => {
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
-  const [nameFilter, setNameFilter] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [uploaderFilter, setUploaderFilter] = useState<string>("");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState<AudioAsset["type"] | "all">("all");
+  const [uploaderFilter, setUploaderFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   // Sort states
-  const [sortBy, setSortBy] = useState<string>("uploadDate");
+  const [sortBy, setSortBy] = useState<keyof AudioAsset>("uploadDate");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Pagination states
@@ -148,7 +148,7 @@ export const AudioAssetManager = () => {
   // Apply filters and sorting
   const applyFiltersAndSort = (assets: AudioAsset[]) => {
     // First apply filters
-    let filtered = assets.filter(asset => {
+    const filtered = assets.filter(asset => {
       if (nameFilter && !asset.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       if (typeFilter !== "all" && asset.type !== typeFilter) return false;
       if (uploaderFilter && !asset.uploader.toLowerCase().includes(uploaderFilter.toLowerCase())) return false;
@@ -164,42 +164,44 @@ export const AudioAssetManager = () => {
     });
 
     // Then apply sorting
-    return filtered.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof AudioAsset];
-      let bValue: any = b[sortBy as keyof AudioAsset];
+    const sortField = sortBy;
+    const parseSize = (size: string) => {
+      const match = size.match(/^([\d.]+)\s*(MB|KB|GB)$/i);
+      if (!match) return 0;
+      const value = parseFloat(match[1]);
+      const unit = match[2].toUpperCase();
+      if (unit === "GB") return value * 1024 * 1024 * 1024;
+      if (unit === "MB") return value * 1024 * 1024;
+      if (unit === "KB") return value * 1024;
+      return value;
+    };
 
-      // Handle date sorting
-      if (sortBy === "uploadDate") {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
-      }
-      
-      // Handle size sorting (convert to bytes)
-      if (sortBy === "size") {
-        const parseSize = (size: string) => {
-          const match = size.match(/^([\d.]+)\s*(MB|KB|GB)$/i);
-          if (!match) return 0;
-          const value = parseFloat(match[1]);
-          const unit = match[2].toUpperCase();
-          if (unit === "GB") return value * 1024 * 1024 * 1024;
-          if (unit === "MB") return value * 1024 * 1024;
-          if (unit === "KB") return value * 1024;
-          return value;
-        };
-        aValue = parseSize(aValue);
-        bValue = parseSize(bValue);
-      }
+    const sorted = [...filtered].sort((a, b) => {
+      const rawA = a[sortField];
+      const rawB = b[sortField];
 
-      // String comparison (case-insensitive)
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+      let aValue: number | string = rawA;
+      let bValue: number | string = rawB;
+
+      if (sortField === "uploadDate") {
+        aValue = new Date(rawA).getTime();
+        bValue = new Date(rawB).getTime();
+      } else if (sortField === "size") {
+        aValue = parseSize(rawA);
+        bValue = parseSize(rawB);
+      } else {
+        aValue = rawA.toLowerCase();
+        bValue = rawB.toLowerCase();
       }
 
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return aValue - bValue;
+      }
+
+      return String(aValue).localeCompare(String(bValue));
     });
+
+    return sortDirection === "asc" ? sorted : sorted.reverse();
   };
 
   const myUploads = applyFiltersAndSort(audioAssets.filter(asset => asset.uploader === currentUser));
