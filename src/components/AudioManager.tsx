@@ -710,8 +710,19 @@ export const AudioManager = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedMessage.languages.map((lang) => (
-                        <TableRow key={lang.id} className="group">
+                      {selectedMessage.languages.map((lang) => {
+                        const isPlaying =
+                          currentlyPlaying?.languageId === lang.id &&
+                          currentlyPlaying?.messageId === selectedMessage.id;
+
+                        return (
+                          <TableRow
+                            key={lang.id}
+                            className={cn(
+                              "group transition-colors duration-300",
+                              isPlaying && "animate-pulse bg-primary/5 ring-1 ring-primary/40"
+                            )}
+                          >
                             <input
                               type="file"
                               accept="audio/*"
@@ -726,31 +737,31 @@ export const AudioManager = () => {
                               }}
                               onChange={(event) => handleFileSelection(selectedMessage.id, lang.id, event)}
                             />
-                          <TableCell className="py-2 text-xs font-medium">{lang.name}</TableCell>
-                          <TableCell className="py-2">
-                            {lang.audio ? (
-                              <Badge variant="outline" className="text-[10px] h-5 border-status-success/30 text-status-success">
-                                Uploaded
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
-                                Not Uploaded
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-2 text-xs text-muted-foreground">
-                            {lang.audio?.fileName || "-"}
-                          </TableCell>
-                          <TableCell className="py-2 text-xs text-muted-foreground">
-                            {lang.audio?.uploadedBy || "-"}
-                          </TableCell>
-                          <TableCell className="py-2 text-xs text-muted-foreground">
-                            {lang.audio?.uploadedAt || "-"}
-                          </TableCell>
-                          <TableCell className="py-2 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                            <TableCell className="py-2 text-xs font-medium">{lang.name}</TableCell>
+                            <TableCell className="py-2">
                               {lang.audio ? (
-                                <>
+                                <Badge variant="outline" className="text-[10px] h-5 border-status-success/30 text-status-success">
+                                  Uploaded
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
+                                  Not Uploaded
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {lang.audio?.fileName || "-"}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {lang.audio?.uploadedBy || "-"}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {lang.audio?.uploadedAt || "-"}
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {lang.audio ? (
+                                  <>
                                     <Button
                                       size="icon"
                                       variant="ghost"
@@ -760,49 +771,50 @@ export const AudioManager = () => {
                                       {currentlyPlaying?.languageId === lang.id && currentlyPlaying?.messageId === selectedMessage.id ? (
                                         <Pause className="w-3 h-3" />
                                       ) : (
-                                    <Play className="w-3 h-3" />
+                                        <Play className="w-3 h-3" />
                                       )}
-                                  </Button>
+                                    </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
                                       className="h-7 w-7 hover:bg-card-hover"
                                       onClick={() => handleDownloadAudio(lang)}
                                     >
-                                    <Download className="w-3 h-3" />
-                                  </Button>
+                                      <Download className="w-3 h-3" />
+                                    </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
                                       className="h-7 w-7 hover:bg-card-hover"
                                       onClick={() => triggerFileInput(selectedMessage.id, lang.id)}
                                     >
-                                    <Upload className="w-3 h-3" />
-                                  </Button>
+                                      <Upload className="w-3 h-3" />
+                                    </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
                                       className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
                                       onClick={() => handleRemoveAudio(selectedMessage.id, lang)}
                                     >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </>
-                              ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                ) : (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="h-7 text-xs"
                                     onClick={() => triggerFileInput(selectedMessage.id, lang.id)}
                                   >
-                                  <Upload className="w-3 h-3 mr-1" />
-                                  Upload
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                    <Upload className="w-3 h-3 mr-1" />
+                                    Upload
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
